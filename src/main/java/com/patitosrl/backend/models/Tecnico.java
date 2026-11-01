@@ -3,10 +3,11 @@ package com.patitosrl.backend.models;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
 import lombok.*;
+import java.util.List;
 
 /**
- * Entidad que representa a un Técnico en el sistema de Técnica Patito S.R.L.
- * Almacena datos personales, ubicación base y disponibilidad.
+ * Entidad que representa a un Técnico en el sistema.
+ * Incluye sus certificaciones (conocimientos) y zonas de cobertura.
  */
 @Entity
 @Table(name = "tecnicos")
@@ -45,4 +46,24 @@ public class Tecnico {
     @Column(nullable = false)
     @Schema(description = "Indica si está disponible (true/false)", example = "true")
     private Boolean disponible;
+
+    // Relación Muchos a Muchos con Certificaciones
+    @ManyToMany(fetch = FetchType.EAGER)
+    @JoinTable(
+        name = "tecnico_certificacion",
+        joinColumns = @JoinColumn(name = "tecnico_id"),
+        inverseJoinColumns = @JoinColumn(name = "certificacion_id")
+    )
+    @Schema(description = "Lista de certificaciones que posee el técnico")
+    private List<Certificacion> certificaciones;
+
+    // Relación Muchos a Muchos con Zonas de Cobertura
+    @ManyToMany(fetch = FetchType.EAGER)
+    @JoinTable(
+        name = "tecnico_zona",
+        joinColumns = @JoinColumn(name = "tecnico_id"),
+        inverseJoinColumns = @JoinColumn(name = "zona_id")
+    )
+    @Schema(description = "Lista de zonas donde el técnico puede trabajar")
+    private List<ZonaCobertura> zonasCobertura;
 }

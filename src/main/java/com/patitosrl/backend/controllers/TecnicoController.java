@@ -13,7 +13,6 @@ import java.util.List;
 
 /**
  * Controlador REST que expone los endpoints para la gestión de Técnicos.
- * Documentado con Swagger para facilitar su prueba y comprensión.
  */
 @RestController
 @RequestMapping("/api/tecnicos")
@@ -24,22 +23,24 @@ public class TecnicoController {
     private final TecnicoService tecnicoService;
 
     @GetMapping
-    @Operation(summary = "Listar todos los técnicos", description = "Obtiene la lista completa de técnicos registrados en el sistema, estén disponibles o no.")
+    @Operation(summary = "Listar todos los técnicos", description = "Obtiene la lista completa de técnicos registrados en el sistema.")
     public ResponseEntity<List<Tecnico>> listar() {
         return ResponseEntity.ok(tecnicoService.obtenerTodos());
     }
 
     @PostMapping
-    @Operation(summary = "Registrar un nuevo técnico", description = "Crea un técnico en la base de datos con sus datos personales y coordenadas base.")
+    @Operation(summary = "Registrar un nuevo técnico", description = "Crea un técnico en la base de datos con sus datos personales, certificaciones y zonas.")
     public ResponseEntity<Tecnico> crear(@RequestBody Tecnico tecnico) {
         return ResponseEntity.ok(tecnicoService.guardar(tecnico));
     }
 
     @GetMapping("/candidatos")
-    @Operation(summary = "Buscar técnicos candidatos por cercanía", description = "Devuelve una lista de técnicos disponibles que se encuentren a menos de 13km de las coordenadas proporcionadas. Utilizado por el MS-Solicitudes.")
+    @Operation(summary = "Buscar técnicos candidatos", description = "Devuelve una lista de técnicos disponibles que tengan la certificación requerida y estén a menos de 13km del cliente.")
     public ResponseEntity<List<Tecnico>> buscarCandidatos(
-            @Parameter(description = "Latitud del domicilio del cliente", example = "-31.420") @RequestParam Double lat,
-            @Parameter(description = "Longitud del domicilio del cliente", example = "-64.188") @RequestParam Double lon) {
-        return ResponseEntity.ok(tecnicoService.buscarCandidatos(lat, lon));
+            @Parameter(description = "Latitud del cliente", example = "-31.420") @RequestParam Double lat,
+            @Parameter(description = "Longitud del cliente", example = "-64.188") @RequestParam Double lon,
+            @Parameter(description = "Certificación requerida", example = "Redes") @RequestParam String certificacion) {
+        
+        return ResponseEntity.ok(tecnicoService.buscarCandidatos(lat, lon, certificacion));
     }
 }

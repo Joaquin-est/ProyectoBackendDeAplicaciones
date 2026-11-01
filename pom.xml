@@ -18,7 +18,7 @@
     
     <properties>
         <!-- Usamos Java 25 (la versión instalada en tu máquina) -->
-        <java.version>25</java.version>
+        <java.version>17</java.version>
     </properties>
     
     <dependencies>

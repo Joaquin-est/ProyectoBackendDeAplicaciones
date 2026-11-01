@@ -1,5 +1,9 @@
 /home/sombre/Documentos/UTN/Tercero/backend/ProyectoBackendDeAplicaciones/src/main/java/com/patitosrl/backend/BackendApplication.java
+/home/sombre/Documentos/UTN/Tercero/backend/ProyectoBackendDeAplicaciones/src/main/java/com/patitosrl/backend/models/ZonaCobertura.java
+/home/sombre/Documentos/UTN/Tercero/backend/ProyectoBackendDeAplicaciones/src/main/java/com/patitosrl/backend/repositories/CertificacionRepository.java
+/home/sombre/Documentos/UTN/Tercero/backend/ProyectoBackendDeAplicaciones/src/main/java/com/patitosrl/backend/repositories/ZonaCoberturaRepository.java
 /home/sombre/Documentos/UTN/Tercero/backend/ProyectoBackendDeAplicaciones/src/main/java/com/patitosrl/backend/services/TecnicoService.java
+/home/sombre/Documentos/UTN/Tercero/backend/ProyectoBackendDeAplicaciones/src/main/java/com/patitosrl/backend/models/Certificacion.java
 /home/sombre/Documentos/UTN/Tercero/backend/ProyectoBackendDeAplicaciones/src/main/java/com/patitosrl/backend/config/SecurityConfig.java
 /home/sombre/Documentos/UTN/Tercero/backend/ProyectoBackendDeAplicaciones/src/main/java/com/patitosrl/backend/models/Tecnico.java
 /home/sombre/Documentos/UTN/Tercero/backend/ProyectoBackendDeAplicaciones/src/main/java/com/patitosrl/backend/repositories/TecnicoRepository.java

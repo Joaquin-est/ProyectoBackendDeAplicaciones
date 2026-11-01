@@ -6,10 +6,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Servicio que contiene la lógica de negocio para la gestión de Técnicos.
- * Incluye el cálculo de distancias geográficas para determinar candidatos cercanos.
  */
 @Service
 @RequiredArgsConstructor
@@ -17,12 +17,10 @@ public class TecnicoService {
 
     private final TecnicoRepository tecnicoRepository;
 
-    /** Retorna la lista completa de técnicos registrados */
     public List<Tecnico> obtenerTodos() {
         return tecnicoRepository.findAll();
     }
 
-    /** Guarda o actualiza un técnico en la base de datos */
     public Tecnico guardar(Tecnico tecnico) {
         return tecnicoRepository.save(tecnico);
     }
@@ -44,14 +42,24 @@ public class TecnicoService {
     }
 
     /**
-     * Busca técnicos disponibles que se encuentren a menos de 13 km
-     * de las coordenadas dadas (Regla de Negocio 9).
+     * Busca técnicos disponibles que cumplan con:
+     * 1. Estar a menos de 13 km de distancia (Regla de Negocio 9).
+     * 2. Tener la certificación requerida (Regla de Negocio 2).
+     * Los resultados se ordenan del más cercano al más lejano.
      */
-    public List<Tecnico> buscarCandidatos(Double lat, Double lon) {
+    public List<Tecnico> buscarCandidatos(Double lat, Double lon, String certificacionRequerida) {
         List<Tecnico> disponibles = tecnicoRepository.findByDisponibleTrue();
-        
+
         return disponibles.stream()
+                // Filtro 1: Tener la certificación requerida
+                .filter(t -> t.getCertificaciones() != null && t.getCertificaciones().stream()
+                        .anyMatch(c -> c.getNombre().equalsIgnoreCase(certificacionRequerida)))
+                // Filtro 2: Estar a menos de 13 km
                 .filter(t -> calcularDistancia(lat, lon, t.getLatitud(), t.getLongitud()) <= 13.0)
-                .toList();
+                // Ordenar por cercanía
+                .sorted((t1, t2) -> Double.compare(
+                        calcularDistancia(lat, lon, t1.getLatitud(), t1.getLongitud()),
+                        calcularDistancia(lat, lon, t2.getLatitud(), t2.getLongitud())))
+                .collect(Collectors.toList());
     }
 }
