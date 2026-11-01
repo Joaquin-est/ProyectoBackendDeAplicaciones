@@ -19,11 +19,10 @@
 
     <modules>
         <module>commons-geo</module>
+        <module>ms-clientes</module>
+        <module>ms-tecnicos</module>
         <module>ms-solicitudes</module>
-        <!-- Los demás módulos se agregan cuando estén listos -->
-        <!-- <module>ms-clientes</module> -->
-        <!-- <module>ms-tecnicos</module> -->
-        <module>api-gateway</module> 
+        <module>api-gateway</module>
     </modules>
 
     <properties>
