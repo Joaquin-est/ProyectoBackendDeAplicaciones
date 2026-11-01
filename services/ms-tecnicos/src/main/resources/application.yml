@@ -1,0 +1,33 @@
+server:
+  port: 8083
+
+spring:
+  application:
+    name: ms-tecnicos
+  datasource:
+    url: jdbc:h2:mem:patito_tecnicos;DB_CLOSE_DELAY=-1;MODE=PostgreSQL
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    open-in-view: false
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+  flyway:
+    enabled: false
+  # TODO: habilitar Resource Server cuando Keycloak esté disponible.
+  # security:
+  #   oauth2:
+  #     resourceserver:
+  #       jwt:
+  #         issuer-uri: http://localhost:8081/realms/patito-realm
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus

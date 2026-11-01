@@ -1,0 +1,36 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      discovery:
+        locator:
+          enabled: false
+      routes:
+        - id: ms-clientes
+          uri: ${MS_CLIENTES_URL:http://localhost:8082}
+          predicates:
+            - Path=/api/v1/clientes/**,/api/v1/domicilios/**
+        - id: ms-tecnicos
+          uri: ${MS_TECNICOS_URL:http://localhost:8083}
+          predicates:
+            - Path=/api/v1/tecnicos/**,/api/v1/zonas/**,/api/v1/certificaciones/**,/api/v1/herramientas/**
+        - id: ms-solicitudes
+          uri: ${MS_SOLICITUDES_URL:http://localhost:8084}
+          predicates:
+            - Path=/api/v1/solicitudes/**,/api/v1/ofertas/**,/api/v1/historial/**
+  # TODO: habilitar Resource Server cuando Keycloak esté disponible.
+  # security:
+  #   oauth2:
+  #     resourceserver:
+  #       jwt:
+  #         issuer-uri: http://localhost:8081/realms/patito-realm
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus

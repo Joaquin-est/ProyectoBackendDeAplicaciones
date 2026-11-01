@@ -1,0 +1,14 @@
+{
+  "name": "pdf-to-txt",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Convierte los PDFs de docs/ a texto plano para poder analizarlos.",
+  "type": "module",
+  "scripts": {
+    "convert": "node convert.mjs",
+    "convert:docs": "node convert.mjs --in ../../docs --out ./salida"
+  },
+  "dependencies": {
+    "pdfjs-dist": "^6.4.299"
+  }
+}

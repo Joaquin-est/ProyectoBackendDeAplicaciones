@@ -1,0 +1,39 @@
+{
+  "realm": "patito-realm",
+  "enabled": true,
+  "displayName": "Tecnica Patito",
+  "roles": {
+    "realm": [
+      { "name": "CLIENTE" },
+      { "name": "TECNICO" },
+      { "name": "ADMIN" }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "patito-web",
+      "enabled": true,
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "redirectUris": [
+        "http://localhost:3000/*",
+        "http://localhost:5173/*"
+      ],
+      "webOrigins": [
+        "http://localhost:3000",
+        "http://localhost:5173"
+      ]
+    },
+    {
+      "clientId": "patito-interno",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "TODO_CHANGE_ME",
+      "serviceAccountsEnabled": true,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false
+    }
+  ],
+  "users": []
+}

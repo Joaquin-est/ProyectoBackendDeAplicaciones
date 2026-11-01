@@ -1,0 +1,13 @@
+target/
+**/target/
+.idea/
+*.iml
+.vscode/
+.env
+*.log
+
+# Material de clase / binarios pesados: no se versionan
+*.pdf
+
+tools/pdf-to-txt/node_modules/
+tools/pdf-to-txt/salida/

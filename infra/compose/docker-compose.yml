@@ -1,0 +1,113 @@
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-patito}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-patito}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ../postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-patito}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:25.0
+    command: start-dev --import-realm
+    environment:
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
+      KC_DB_USERNAME: ${POSTGRES_USER:-patito}
+      KC_DB_PASSWORD: ${POSTGRES_PASSWORD:-patito}
+    ports:
+      - "8081:8080"
+    volumes:
+      - ../keycloak/realm-patito.json:/opt/keycloak/data/import/realm-patito.json:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  api-gateway:
+    build:
+      context: ../..
+      dockerfile: platform/api-gateway/Dockerfile
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      KEYCLOAK_ISSUER_URI: http://keycloak:8080/realms/patito-realm
+      MS_CLIENTES_URL: http://ms-clientes:8082
+      MS_TECNICOS_URL: http://ms-tecnicos:8083
+      MS_SOLICITUDES_URL: http://ms-solicitudes:8084
+    ports:
+      - "8080:8080"
+    depends_on:
+      - ms-clientes
+      - ms-tecnicos
+      - ms-solicitudes
+      - keycloak
+
+  ms-clientes:
+    build:
+      context: ../..
+      dockerfile: services/ms-clientes/Dockerfile
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      POSTGRES_USER: ${POSTGRES_USER:-patito}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-patito}
+      KEYCLOAK_ISSUER_URI: http://keycloak:8080/realms/patito-realm
+    ports:
+      - "8082:8082"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      keycloak:
+        condition: service_started
+
+  ms-tecnicos:
+    build:
+      context: ../..
+      dockerfile: services/ms-tecnicos/Dockerfile
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      POSTGRES_USER: ${POSTGRES_USER:-patito}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-patito}
+      KEYCLOAK_ISSUER_URI: http://keycloak:8080/realms/patito-realm
+    ports:
+      - "8083:8083"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      keycloak:
+        condition: service_started
+
+  ms-solicitudes:
+    build:
+      context: ../..
+      dockerfile: services/ms-solicitudes/Dockerfile
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      POSTGRES_USER: ${POSTGRES_USER:-patito}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-patito}
+      KEYCLOAK_ISSUER_URI: http://keycloak:8080/realms/patito-realm
+      MS_CLIENTES_URL: http://ms-clientes:8082
+      MS_TECNICOS_URL: http://ms-tecnicos:8083
+      GEO_BASE_URL: https://router.project-osrm.org
+    ports:
+      - "8084:8084"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      keycloak:
+        condition: service_started
+      ms-clientes:
+        condition: service_started
+      ms-tecnicos:
+        condition: service_started
+
+volumes:
+  postgres_data:

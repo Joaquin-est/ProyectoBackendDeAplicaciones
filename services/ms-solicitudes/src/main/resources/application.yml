@@ -1,0 +1,43 @@
+server:
+  port: 8084
+
+spring:
+  application:
+    name: ms-solicitudes
+  datasource:
+    url: jdbc:h2:mem:patito_solicitudes;DB_CLOSE_DELAY=-1;MODE=PostgreSQL
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    open-in-view: false
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+  flyway:
+    enabled: false
+  # TODO: habilitar Resource Server cuando Keycloak esté disponible.
+  # security:
+  #   oauth2:
+  #     resourceserver:
+  #       jwt:
+  #         issuer-uri: http://localhost:8081/realms/patito-realm
+
+app:
+  clientes:
+    base-url: ${MS_CLIENTES_URL:http://localhost:8082}
+  tecnicos:
+    base-url: ${MS_TECNICOS_URL:http://localhost:8083}
+  geo:
+    base-url: ${GEO_BASE_URL:https://router.project-osrm.org}
+  ofertas:
+    duracion-minutos: 15
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus

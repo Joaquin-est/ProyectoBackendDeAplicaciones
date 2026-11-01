@@ -1,0 +1,20 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: api-gateway
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ["api-gateway:8080"]
+  - job_name: ms-clientes
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ["ms-clientes:8082"]
+  - job_name: ms-tecnicos
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ["ms-tecnicos:8083"]
+  - job_name: ms-solicitudes
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ["ms-solicitudes:8084"]

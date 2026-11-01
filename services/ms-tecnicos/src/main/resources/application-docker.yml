@@ -1,0 +1,16 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://postgres:5432/patito_tecnicos
+    username: ${POSTGRES_USER:patito}
+    password: ${POSTGRES_PASSWORD:patito}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${KEYCLOAK_ISSUER_URI:http://keycloak:8080/realms/patito-realm}

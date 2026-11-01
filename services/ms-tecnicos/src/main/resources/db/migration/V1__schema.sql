@@ -1,0 +1,1 @@
+-- TODO: esquema inicial de patito_tecnicos.
