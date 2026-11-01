@@ -1,0 +1,12 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+
+app:
+  gateway:
+    solicitudes-url: http://localhost:8081
+    tecnicos-url: http://localhost:8082
+    clientes-url: http://localhost:8083

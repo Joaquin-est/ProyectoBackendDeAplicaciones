@@ -1,0 +1,39 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: ms-solicitudes
+  datasource:
+    url: jdbc:h2:mem:solicitudes;DB_CLOSE_DELAY=-1
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+# URLs de los otros microservicios (a los que llama tu módulo)
+app:
+  clientes:
+    base-url: http://localhost:8083
+  tecnicos:
+    base-url: http://localhost:8082
+
+# Configuración de tarifas (RN-11)
+tarifas:
+  costo-base: 500.0
+  costo-por-km: 100.0
+  recargo-prioridad:
+    BAJA: 0.0
+    NORMAL: 0.0
+    ALTA: 0.20
+    URGENTE: 0.50
+  recargo-fuera-de-horario: 0.30
+  horario-habil:
+    inicio: "08:00"
+    fin: "18:00"
