@@ -111,12 +111,4 @@
             </plugin>
         </plugins>
     </build>
-</project>{
-  "id": 1,
-  "nombre": "Juan",
-  "apellido": "Perez",
-  "dni": "11111111",
-  "latitud": -31.420,
-  "longitud": -64.188,
-  "disponible": true
-}
+</project>
