@@ -2,11 +2,12 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
+    
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.2.5</version> <!-- Versión estable de Spring Boot 3 -->
-        <relativePath/> <!-- lookup parent from repository -->
+        <version>3.2.5</version>
+        <relativePath/> 
     </parent>
     
     <groupId>com.patitosrl</groupId>
@@ -16,55 +17,56 @@
     <description>Backend API para la gestión de Técnica Patito S.R.L.</description>
     
     <properties>
-        <java.version>17</java.version>
+        <!-- Usamos Java 25 (la versión instalada en tu máquina) -->
+        <java.version>25</java.version>
     </properties>
     
     <dependencies>
-        <!-- 1. Spring Web: Exponer API REST (Tomcat embebido) -->
+        <!-- Spring Web -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
 
-        <!-- 2. Spring Data JPA: Mapeo Objeto-Relacional (Hibernate) -->
+        <!-- Spring Data JPA -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-jpa</artifactId>
         </dependency>
 
-        <!-- 3. Driver de Base de Datos (PostgreSQL) -->
+        <!-- Base de Datos H2 -->
         <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
             <scope>runtime</scope>
         </dependency>
 
-        <!-- 4. Spring Security: Núcleo de seguridad -->
+        <!-- Spring Security -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-security</artifactId>
         </dependency>
 
-        <!-- 5. OAuth2 Resource Server: Para integrar Keycloak y validar JWT -->
+        <!-- OAuth2 para Keycloak -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
         </dependency>
 
-        <!-- 6. Validation: Para validar DTOs (ej: @NotNull, @Min) -->
+        <!-- Validaciones -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
 
-        <!-- 7. Lombok: Evitar getters/setters y usar @Slf4j para logs -->
+        <!-- Lombok -->
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
             <optional>true</optional>
         </dependency>
 
-        <!-- 8. Testing (Opcional pero recomendado) -->
+        <!-- TESTING -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
@@ -75,11 +77,26 @@
             <artifactId>spring-security-test</artifactId>
             <scope>test</scope>
         </dependency>
+
+        <!-- SWAGGER / OPENAPI (Springdoc) -->
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+            <version>2.5.0</version>
+        </dependency>
     </dependencies>
 
     <build>
         <plugins>
-            <!-- Plugin oficial para empaquetar la app en un .jar ejecutable -->
+            <!-- Forzar a Maven a compilar con Java 25 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <source>25</source>
+                    <target>25</target>
+                </configuration>
+            </plugin>
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
@@ -94,4 +111,12 @@
             </plugin>
         </plugins>
     </build>
-</project>
+</project>{
+  "id": 1,
+  "nombre": "Juan",
+  "apellido": "Perez",
+  "dni": "11111111",
+  "latitud": -31.420,
+  "longitud": -64.188,
+  "disponible": true
+}

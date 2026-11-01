@@ -1,26 +1,27 @@
+# =========================================================================
+# CONFIGURACIÓN DEL MICROSERVICIO DE TÉCNICOS (MS-TECNICOS)
+# =========================================================================
 server:
-  port: 8080
+  port: 8082 # Puerto para no chocar con el Gateway (8080) o Keycloak (8081)
 
 spring:
   application:
-    name: tecnica-patito-api
+    name: ms-tecnicos
 
-  # 1. Configuración de H2 (Base de datos en memoria)
+  # Base de datos H2 en memoria
   datasource:
-    url: jdbc:h2:mem:patito_db;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    url: jdbc:h2:mem:tecnicos_db;DB_CLOSE_DELAY=-1
     driverClassName: org.h2.Driver
     username: sa
     password: 
 
-  # 2. Habilitar la consola web de H2
+  # Habilitar consola web de H2
   h2:
     console:
       enabled: true
       path: /h2-console
-      settings:
-        web-allow-others: false
 
-  # 3. Configuración de JPA e Hibernate
+  # Configuración de JPA / Hibernate
   jpa:
     hibernate:
       ddl-auto: update
@@ -29,18 +30,15 @@ spring:
       hibernate:
         format_sql: true
         dialect: org.hibernate.dialect.H2Dialect
-    # Permite ver los datos en la consola H2 antes de que la app se detenga
-    defer-datasource-initialization: true
 
-  # 4. Configuración de Keycloak (Resource Server)
-  security:
-    oauth2:
-      resourceserver:
-        jwt:
-          issuer-uri: http://localhost:8081/realms/patito-realm
+# Configuración de Swagger UI
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html # Ruta para acceder a la interfaz gráfica
+  api-docs:
+    path: /v3/api-docs # Ruta donde se expone el JSON de OpenAPI
 
+# Niveles de log
 logging:
   level:
-    root: INFO
-    org.springframework.security: DEBUG
     org.hibernate.SQL: DEBUG
