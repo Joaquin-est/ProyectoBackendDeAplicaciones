@@ -2,6 +2,12 @@ server:
   port: 8082
 
 spring:
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:9090/realms/patito
+          jwk-set-uri: http://localhost:9090/realms/patito/protocol/openid-connect/certs
   application:
     name: ms-tecnicos
   datasource:
