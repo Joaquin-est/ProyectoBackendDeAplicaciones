@@ -1,13 +1,13 @@
 server:
-  port: 8081
+  port: 41072
 
 spring:
   security:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: http://localhost:9090/realms/patito
-          jwk-set-uri: http://localhost:9090/realms/patito/protocol/openid-connect/certs
+          issuer-uri: http://localhost:41090/realms/patito
+          jwk-set-uri: http://localhost:41090/realms/patito/protocol/openid-connect/certs
   application:
     name: ms-solicitudes
   datasource:
@@ -26,9 +26,9 @@ spring:
 # URLs de los otros microservicios (a los que llama tu módulo)
 app:
   clientes:
-    base-url: http://localhost:8083
+    base-url: http://localhost:41074
   tecnicos:
-    base-url: http://localhost:8082
+    base-url: http://localhost:41073
   # API de mapas usada por commons-geo (RN-8)
   geo:
     base-url: ${GEO_BASE_URL:https://router.project-osrm.org}

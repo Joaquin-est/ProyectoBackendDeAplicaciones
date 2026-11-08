@@ -1,0 +1,113 @@
+version: '3.8'
+
+services:
+  # ==========================================
+  # KEYCLOAK (Identity Provider)
+  # ==========================================
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0.1
+    container_name: keycloak-patito
+    ports:
+      - "41090:8080"
+    environment:
+      - KEYCLOAK_ADMIN=admin
+      - KEYCLOAK_ADMIN_PASSWORD=admin
+      - KC_DB=dev-file
+      - KC_HEALTH_ENABLED=true
+    command: start-dev
+    volumes:
+      - keycloak_data:/opt/keycloak/data
+    networks:
+      - patito-net
+    healthcheck:
+      # Usamos bash /dev/tcp en lugar de curl (curl no está en la imagen)
+      test: ["CMD-SHELL", "{ printf 'HEAD /health/ready HTTP/1.0\\r\\n\\r\\n' >&0; grep 'HTTP/1.[01] 200'; } 0<>/dev/tcp/localhost/9000"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 120s
+
+  # ==========================================
+  # MICROSERVICIOS
+  # ==========================================
+  api-gateway:
+    build:
+      context: ./api-gateway
+      dockerfile: Dockerfile
+    container_name: api-gateway
+    ports:
+      - "41071:41071"
+    environment:
+      # URLs internas de los microservicios (usan el nombre del servicio en Docker)
+      - APP_GATEWAY_SOLICITUDES_URL=http://ms-solicitudes:41072
+      - APP_GATEWAY_TECNICOS_URL=http://ms-tecnicos:41073
+      - APP_GATEWAY_CLIENTES_URL=http://ms-clientes:41074
+      - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI=http://keycloak:8080/realms/patito
+    depends_on:
+      keycloak:
+        condition: service_healthy
+      ms-solicitudes:
+        condition: service_started
+      ms-tecnicos:
+        condition: service_started
+      ms-clientes:
+        condition: service_started
+    networks:
+      - patito-net
+
+  ms-solicitudes:
+    build:
+      context: ./ms-solicitudes
+      dockerfile: Dockerfile
+    container_name: ms-solicitudes
+    ports:
+      - "41072:41072"
+    environment:
+      - APP_CLIENTES_BASE_URL=http://ms-clientes:41074
+      - APP_TECNICOS_BASE_URL=http://ms-tecnicos:41073
+      - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI=http://keycloak:8080/realms/patito
+    depends_on:
+      keycloak:
+        condition: service_healthy
+    networks:
+      - patito-net
+
+  ms-tecnicos:
+    build:
+      context: ./ms-tecnicos
+      dockerfile: Dockerfile
+    container_name: ms-tecnicos
+    ports:
+      - "41073:41073"
+    environment:
+      - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI=http://keycloak:8080/realms/patito
+    depends_on:
+      keycloak:
+        condition: service_healthy
+    networks:
+      - patito-net
+
+  ms-clientes:
+    build:
+      context: ./ms-clientes
+      dockerfile: Dockerfile
+    container_name: ms-clientes
+    ports:
+      - "41074:41074"
+    environment:
+      - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI=http://keycloak:8080/realms/patito
+    depends_on:
+      keycloak:
+        condition: service_healthy
+    networks:
+      - patito-net
+
+# ==========================================
+# VOLÚMENES Y REDES
+# ==========================================
+volumes:
+  keycloak_data:
+
+networks:
+  patito-net:
+    driver: bridge

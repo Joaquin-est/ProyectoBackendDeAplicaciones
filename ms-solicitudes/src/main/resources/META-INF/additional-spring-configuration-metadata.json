@@ -1,0 +1,12 @@
+{"properties": [
+  {
+    "name": "app.clientes.base-url",
+    "type": "java.lang.String",
+    "description": "A description for 'app.clientes.base-url'"
+  },
+  {
+    "name": "app.tecnicos.base-url",
+    "type": "java.lang.String",
+    "description": "A description for 'app.tecnicos.base-url'"
+  }
+]}
