@@ -1,0 +1,76 @@
+### Variables globales
+@gateway = http://localhost:41071
+@msTecnicos = http://localhost:41073
+@token = PEGAR_TOKEN_AQUI
+
+# ==========================================
+# ACCESO DIRECTO AL MICROSERVICIO (Sin Gateway)
+# ==========================================
+
+### 1. Listar todos los técnicos (sin token - debería dar 401)
+GET {{gateway}}/api/tecnicos
+
+### 2. Listar todos los técnicos (con token)
+GET {{gateway}}/api/tecnicos
+Authorization: Bearer {{token}}
+
+### 3. Obtener un técnico por ID (ID: 1)
+GET {{msTecnicos}}/api/tecnicos/1
+Authorization: Bearer {{token}}
+
+### 4. Obtener un técnico por ID (ID inexistente - debería dar 404)
+GET {{msTecnicos}}/api/tecnicos/999
+Authorization: Bearer {{token}}
+
+### 5. Buscar técnicos candidatos (Certificación "Redes", cerca del centro de Córdoba)
+GET {{msTecnicos}}/api/tecnicos/candidatos?lat=-31.420&lon=-64.188&certificacion=Redes
+Authorization: Bearer {{token}}
+
+### 6. Buscar técnicos candidatos (Certificación "Impresoras")
+GET {{msTecnicos}}/api/tecnicos/candidatos?lat=-31.420&lon=-64.188&certificacion=Impresoras
+Authorization: Bearer {{token}}
+
+### 7. Crear un nuevo técnico
+POST {{msTecnicos}}/api/tecnicos
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "nombre": "Pedro",
+  "apellido": "Ramirez",
+  "dni": "77777777",
+  "latitud": -31.410,
+  "longitud": -64.200,
+  "disponible": true,
+  "certificacionIds": [1],
+  "zonaCoberturaIds": [1]
+}
+
+
+# ==========================================
+# A TRAVÉS DEL GATEWAY (Punto de entrada único)
+# ==========================================
+
+### 8. Listar todos los técnicos (vía Gateway)
+GET {{gateway}}/api/tecnicos
+Authorization: Bearer {{token}}
+
+### 9. Buscar candidatos (vía Gateway)
+GET {{gateway}}/api/tecnicos/candidatos?lat=-31.420&lon=-64.188&certificacion=Redes
+Authorization: Bearer {{token}}
+
+### 10. Crear técnico (vía Gateway)
+POST {{gateway}}/api/tecnicos
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "nombre": "Laura",
+  "apellido": "Martinez",
+  "dni": "88888888",
+  "latitud": -31.425,
+  "longitud": -64.185,
+  "disponible": true,
+  "certificacionIds": [2],
+  "zonaCoberturaIds": [1, 2]
+}

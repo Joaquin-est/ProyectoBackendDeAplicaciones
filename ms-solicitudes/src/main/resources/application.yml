@@ -6,8 +6,8 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: http://localhost:41090/realms/patito
-          jwk-set-uri: http://localhost:41090/realms/patito/protocol/openid-connect/certs
+          issuer-uri: ${SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI:http://keycloak:8080/realms/patito}
+          jwk-set-uri: ${SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI:http://keycloak:8080/realms/patito/protocol/openid-connect/certs}
   application:
     name: ms-solicitudes
   datasource:
@@ -23,17 +23,21 @@ spring:
       enabled: true
       path: /h2-console
 
-# URLs de los otros microservicios (a los que llama tu módulo)
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    operationsSorter: alpha
+  api-docs:
+    path: /v3/api-docs
+
 app:
   clientes:
-    base-url: http://localhost:41074
+    base-url: ${APP_CLIENTES_BASE_URL:http://ms-clientes:41074}
   tecnicos:
-    base-url: http://localhost:41073
-  # API de mapas usada por commons-geo (RN-8)
+    base-url: ${APP_TECNICOS_BASE_URL:http://ms-tecnicos:41073}
   geo:
     base-url: ${GEO_BASE_URL:https://router.project-osrm.org}
 
-# Configuración de tarifas (RN-11)
 tarifas:
   costo-base: 500.0
   costo-por-km: 100.0

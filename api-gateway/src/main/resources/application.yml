@@ -6,13 +6,15 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: http://localhost:41090/realms/patito
-          jwk-set-uri: http://localhost:41090/realms/patito/protocol/openid-connect/certs
+          # Usamos variables de entorno con valores por defecto para Docker
+          issuer-uri: ${SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI:http://keycloak:8080/realms/patito}
+          jwk-set-uri: ${SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI:http://keycloak:8080/realms/patito/protocol/openid-connect/certs}
   application:
     name: api-gateway
 
 app:
   gateway:
-    solicitudes-url: http://localhost:8081
-    tecnicos-url: http://localhost:8082
-    clientes-url: http://localhost:8083
+    # Nombres de los servicios en la red de Docker
+    solicitudes-url: ${APP_GATEWAY_SOLICITUDES_URL:http://ms-solicitudes:41072}
+    tecnicos-url: ${APP_GATEWAY_TECNICOS_URL:http://ms-tecnicos:41073}
+    clientes-url: ${APP_GATEWAY_CLIENTES_URL:http://ms-clientes:41074}

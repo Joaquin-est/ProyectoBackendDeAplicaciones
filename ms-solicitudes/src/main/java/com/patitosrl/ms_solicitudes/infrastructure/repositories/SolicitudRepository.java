@@ -29,4 +29,6 @@ public interface SolicitudRepository extends JpaRepository<Solicitud, Long> {
      * Fundamental para validar la Regla de Negocio 5 (límite de solicitudes por técnico).
      */
     List<Solicitud> findByTecnicoIdAndEstado(Long tecnicoId, EstadoSolicitud estado);
+
+    Object findById(long l);
 }

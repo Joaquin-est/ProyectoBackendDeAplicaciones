@@ -3,6 +3,8 @@ package com.patitosrl.ms_solicitudes.infrastructure.clients;
 import java.util.List;
 
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.ResourceAccessException;
@@ -21,13 +23,20 @@ public class TecnicosClient {
         this.restClient = tecnicosRestClient;
     }
 
-    /**
-     * Obtiene la lista completa de técnicos para filtrar por cercanía, especialidad y disponibilidad.
-     */
+    private String getToken() {
+        var authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication instanceof JwtAuthenticationToken jwtAuth) {
+            return jwtAuth.getToken().getTokenValue();
+        }
+        return null;
+    }
+
     public List<TecnicoRemoto> listar() {
         try {
+            String token = getToken();
             return restClient.get()
                     .uri("/api/tecnicos")
+                    .header("Authorization", "Bearer " + token)
                     .retrieve()
                     .body(new ParameterizedTypeReference<List<TecnicoRemoto>>() {});
         } catch (ResourceAccessException e) {
@@ -35,13 +44,12 @@ public class TecnicosClient {
         }
     }
 
-    /**
-     * Busca un técnico por ID (necesario al momento de asignar una solicitud).
-     */
     public TecnicoRemoto buscarPorId(Long id) {
         try {
+            String token = getToken();
             TecnicoRemoto tecnico = restClient.get()
                     .uri("/api/tecnicos/{id}", id)
+                    .header("Authorization", "Bearer " + token)
                     .retrieve()
                     .body(TecnicoRemoto.class);
                     

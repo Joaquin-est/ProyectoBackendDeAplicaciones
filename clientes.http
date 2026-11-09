@@ -1,0 +1,36 @@
+### Variables globales
+@gateway = http://localhost:41071
+@msClientes = http://localhost:41074
+@token = PEGAR_TOKEN_AQUI
+
+# ==========================================
+# ACCESO DIRECTO AL MICROSERVICIO (Sin Gateway)
+# ==========================================
+
+### 1. Listar todos los clientes (sin token - debería dar 401)
+GET {{gateway}}/api/clientes
+
+### 2. Listar todos los clientes (con token)
+GET {{msClientes}}/api/clientes
+Authorization: Bearer {{token}}
+
+### 3. Obtener un cliente por ID (ID: 1)
+GET {{msClientes}}/api/clientes/1
+Authorization: Bearer {{token}}
+
+### 4. Obtener un cliente por ID (ID inexistente - debería dar 404)
+GET {{msClientes}}/api/clientes/999
+Authorization: Bearer {{token}}
+
+
+# ==========================================
+# A TRAVÉS DEL GATEWAY (Punto de entrada único)
+# ==========================================
+
+### 5. Listar todos los clientes (vía Gateway)
+GET {{gateway}}/api/clientes
+Authorization: Bearer {{token}}
+
+### 6. Obtener un cliente por ID (vía Gateway)
+GET {{gateway}}/api/clientes/1
+Authorization: Bearer {{token}}

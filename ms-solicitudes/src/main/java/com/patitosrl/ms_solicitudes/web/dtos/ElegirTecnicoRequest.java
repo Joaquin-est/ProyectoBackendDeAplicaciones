@@ -9,7 +9,11 @@ import lombok.Data;
 
 @Data
 public class ElegirTecnicoRequest {
-    @NotNull private Long especialidadId;
+    public ElegirTecnicoRequest(Long especialidadId2, Double latitud2, Double longitud2,
+            LocalDateTime fechaHoraProgramada, Prioridad prioridad2) {
+        //TODO Auto-generated constructor stub
+    }
+    @NotNull private String especialidadId;
     @NotNull private Double latitud;
     @NotNull private Double longitud;
     @NotNull private LocalDateTime fechaHora;

@@ -16,7 +16,6 @@ import lombok.Data;
 public class SolicitudResponse {
     private Long id;
     private Long clienteId;
-    private String clienteNombre;
     private String domicilio;
     private List<TipoServicio> tiposServicio;
     private String marca;
@@ -43,7 +42,7 @@ public class SolicitudResponse {
     /** Método estático para convertir la Entidad al DTO de respuesta */
     public static SolicitudResponse desde(Solicitud s) {
         return new SolicitudResponse(
-                s.getId(), s.getClienteId(), s.getClienteNombre(), s.getDomicilio(),
+                s.getId(), s.getClienteId(), s.getDomicilio(),
                 s.getTiposServicio(), s.getMarca(), s.getModelo(), s.getDescripcion(),
                 s.getEstado(), s.getPrioridad(), s.getFechaHoraProgramada(),
                 s.getTecnicoId(), s.getTecnicoNombre(), s.getDistanciaKm(), s.getTiempoEstimadoMin(),

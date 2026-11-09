@@ -6,8 +6,8 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: http://localhost:41090/realms/patito
-          jwk-set-uri: http://localhost:41090/realms/patito/protocol/openid-connect/certs
+          issuer-uri: ${SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI:http://keycloak:8080/realms/patito}
+          jwk-set-uri: ${SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI:http://keycloak:8080/realms/patito/protocol/openid-connect/certs}
   application:
     name: ms-tecnicos
   datasource:
@@ -26,6 +26,7 @@ spring:
 springdoc:
   swagger-ui:
     path: /swagger-ui.html
+    operationsSorter: alpha
   api-docs:
     path: /v3/api-docs
 

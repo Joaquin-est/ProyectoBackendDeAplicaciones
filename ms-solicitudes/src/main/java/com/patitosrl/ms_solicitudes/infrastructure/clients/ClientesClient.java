@@ -1,5 +1,7 @@
 package com.patitosrl.ms_solicitudes.infrastructure.clients;
 
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.ResourceAccessException;
@@ -19,16 +21,23 @@ public class ClientesClient {
     }
 
     /**
-     * Busca un cliente por su ID.
-     * @param id El ID del cliente a buscar.
-     * @return El DTO ClienteRemoto.
-     * @throws ClienteNoEncontradoException si el cliente no existe (404).
-     * @throws ServicioNoDisponibleException si el servicio no responde o hay timeout.
+     * Obtiene el token JWT del contexto de seguridad actual.
      */
+    private String getToken() {
+        var authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication instanceof JwtAuthenticationToken jwtAuth) {
+            return jwtAuth.getToken().getTokenValue();
+        }
+        return null;
+    }
+
     public ClienteRemoto buscarPorId(Long id) {
         try {
+            String token = getToken();
+            
             ClienteRemoto cliente = restClient.get()
                     .uri("/api/clientes/{id}", id)
+                    .header("Authorization", "Bearer " + token) // <-- Propagar el token
                     .retrieve()
                     .body(ClienteRemoto.class);
                     
@@ -38,10 +47,8 @@ public class ClientesClient {
             return cliente;
             
         } catch (HttpClientErrorException.NotFound e) {
-            // El servidor respondió 404 Not Found
             throw new ClienteNoEncontradoException(id);
         } catch (ResourceAccessException e) {
-            // El servidor está caído, rechazó la conexión o hubo timeout
             throw new ServicioNoDisponibleException("El servicio de clientes no se encuentra disponible", e);
         }
     }
