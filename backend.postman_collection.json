@@ -1,0 +1,242 @@
+{
+  "info": {
+    "_postman_id": "d647933b-776c-4ed9-9c43-85bc96c075d5",
+    "name": "backend",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "54931068"
+  },
+  "item": [
+    {
+      "name": "Obtenertoken",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "var jsonData = pm.response.json();\n\nif (jsonData.access_token) {\n    pm.environment.set(\"token\", jsonData.access_token);\n    console.log(\"Token guardado automáticamente:\", jsonData.access_token.substring(0, 20) + \"...\");\n} else {\n    console.error(\"No se pudo obtener el token. Respuesta:\", jsonData);\n}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "urlencoded",
+          "urlencoded": [
+            {
+              "key": "client_id",
+              "value": "{{client_id}}"
+            },
+            {
+              "key": "client_secret",
+              "value": "{{client_secret}}"
+            },
+            {
+              "key": "grant_type",
+              "value": "password"
+            },
+            {
+              "key": "username",
+              "value": "cliente1"
+            },
+            {
+              "key": "password",
+              "value": "1234"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{keycloak_url}}",
+          "host": [
+            "{{keycloak_url}}"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Lista de Técnicos",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{gateway_url}}/api/tecnicos",
+          "host": [
+            "{{gateway_url}}"
+          ],
+          "path": [
+            "api",
+            "tecnicos"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Lista de clientes",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{gateway_url}}/api/clientes?Authorization=Bearer {{token}}",
+          "host": [
+            "{{gateway_url}}"
+          ],
+          "path": [
+            "api",
+            "clientes"
+          ],
+          "query": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{token}}"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Crear Cliente",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"Carlos\",\n  \"apellido\": \"Garcia\",\n  \"dni\": \"5235325325\",\n  \"latitud\": -31.420,\n  \"longitud\": -64.188\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{gateway_url}}/api/clientes?Authorization=Bearer {{token}}",
+          "host": [
+            "{{gateway_url}}"
+          ],
+          "path": [
+            "api",
+            "clientes"
+          ],
+          "query": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{token}}"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "acceso rechazado",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{gateway_url}}/api/tecnicos",
+          "host": [
+            "{{gateway_url}}"
+          ],
+          "path": [
+            "api",
+            "tecnicos"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Crear solicitud",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"clienteId\": 4,\n  \"domicilio\": \"Av. Colón 1234, Córdoba\",\n  \"tiposServicio\": [\"REPARACION\"],\n  \"marca\": \"Apple\",\n  \"modelo\": \"MacBook Pro 2020\",\n  \"descripcion\": \"La pantalla no enciende y no da imagen\",\n  \"especialidadId\": 3,\n  \"prioridad\": \"NORMAL\",\n  \"fechaHoraProgramada\": \"2026-11-10T10:00:00\",\n  \"esFeriado\": false\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{gateway_url}}/api/solicitudes",
+          "host": [
+            "{{gateway_url}}"
+          ],
+          "path": [
+            "api",
+            "solicitudes"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Consultar historial por id",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{gateway_url}}/api/solicitudes/1/historial",
+          "host": [
+            "{{gateway_url}}"
+          ],
+          "path": [
+            "api",
+            "solicitudes",
+            "1",
+            "historial"
+          ]
+        }
+      },
+      "response": []
+    }
+  ]
+}
