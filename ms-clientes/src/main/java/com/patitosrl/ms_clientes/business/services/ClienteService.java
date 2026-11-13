@@ -59,15 +59,15 @@ public class ClienteService {
     private String crearUsuarioEnKeycloak(ClienteRequest req) {
         try {
             // A. Obtener Token de Admin (Client Credentials)
-            Map<String, String> tokenBody = new HashMap<>();
-            tokenBody.put("grant_type", "client_credentials");
-            tokenBody.put("client_id", "patito-api");
-            tokenBody.put("client_secret", "d8Lwbv44FWboVSKG3FDrVHsOisq8wULZ");
+            // CORRECCIÓN: Usamos un String en formato URL-encoded en lugar de un Map
+            String tokenBody = "grant_type=client_credentials" +
+                               "&client_id=patito-api" +
+                               "&client_secret=d8Lwbv44FWboVSKG3FDrVHsOisq8wULZ";
 
             Map tokenResponse = keycloakWebClient.post()
                     .uri("/realms/patito/protocol/openid-connect/token")
                     .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                    .bodyValue(tokenBody)
+                    .bodyValue(tokenBody) // <-- String, no Map
                     .retrieve()
                     .bodyToMono(Map.class)
                     .block();
