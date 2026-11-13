@@ -16,12 +16,10 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 
 @RestController
 @RequestMapping("/api/solicitudes")
 @RequiredArgsConstructor
-@Slf4j
 @Tag(name = "Gestión de Solicitudes", description = "Endpoints para el ciclo de vida de las solicitudes")
 public class SolicitudController {
 
@@ -31,26 +29,7 @@ public class SolicitudController {
     @Operation(summary = "Crear una nueva solicitud", 
                description = "Crea una solicitud en estado PENDIENTE y dispara automáticamente la oferta al técnico más cercano.")
     public ResponseEntity<SolicitudResponse> crear(@Valid @RequestBody SolicitudRequest req) {
-        // 1. Crear la solicitud en PENDIENTE (transacción principal)
         Solicitud s = service.crear(req);
-
-        // 2. Ofertar automáticamente (transacción independiente con REQUIRES_NEW)
-        try {
-            service.ofertarAutomaticamente(
-                    s.getId(), 
-                    req.getEspecialidadId(), 
-                    s.getLatitud(), 
-                    s.getLongitud(), 
-                    s.getFechaHoraProgramada(), 
-                    s.getPrioridad()
-            );
-            // Recargar para reflejar el estado OFERTADA
-            s = service.obtener(s.getId());
-        } catch (Exception e) {
-            log.warn("No se pudo ofertar automáticamente: {}", e.getMessage());
-            // La solicitud queda en PENDIENTE
-        }
-
         return ResponseEntity.created(URI.create("/api/solicitudes/" + s.getId()))
                 .body(SolicitudResponse.desde(s));
     }

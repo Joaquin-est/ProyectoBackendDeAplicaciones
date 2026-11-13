@@ -49,8 +49,4 @@ public class HistorialEstado {
         this.timestamp = LocalDateTime.now();
         this.observaciones = obs;
     }
-
-    public HistorialEstado(String id2, EstadoSolicitud pendiente, EstadoSolicitud ofertada, String obs) {
-        //TODO Auto-generated constructor stub
-    }
 }

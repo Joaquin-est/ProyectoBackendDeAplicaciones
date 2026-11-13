@@ -5,15 +5,15 @@ import java.time.LocalDateTime;
 import com.patitosrl.ms_solicitudes.business.models.Prioridad;
 
 import jakarta.validation.constraints.NotNull;
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class ElegirTecnicoRequest {
-    public ElegirTecnicoRequest(Long especialidadId2, Double latitud2, Double longitud2,
-            LocalDateTime fechaHoraProgramada, Prioridad prioridad2) {
-        //TODO Auto-generated constructor stub
-    }
-    @NotNull private String especialidadId;
+    @NotNull private Long especialidadId;
     @NotNull private Double latitud;
     @NotNull private Double longitud;
     @NotNull private LocalDateTime fechaHora;

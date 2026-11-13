@@ -4,7 +4,6 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.patitosrl.ms_solicitudes.business.exceptions.ReglaDeNegocioException;
@@ -12,7 +11,6 @@ import com.patitosrl.ms_solicitudes.business.exceptions.SolicitudNoEncontradaExc
 import com.patitosrl.ms_solicitudes.business.models.ClienteRemoto;
 import com.patitosrl.ms_solicitudes.business.models.EstadoSolicitud;
 import com.patitosrl.ms_solicitudes.business.models.HistorialEstado;
-import com.patitosrl.ms_solicitudes.business.models.Prioridad;
 import com.patitosrl.ms_solicitudes.business.models.Solicitud;
 import com.patitosrl.ms_solicitudes.infrastructure.clients.ClientesClient;
 import com.patitosrl.ms_solicitudes.infrastructure.repositories.HistorialEstadoRepository;
@@ -35,9 +33,12 @@ public class SolicitudService {
     private final AsignacionService asignacionService;
 
     /**
-     * Crea una solicitud en estado PENDIENTE. NO oferta automáticamente.
-     * La oferta se dispara desde el controlador en una transacción separada
-     * para evitar el UnexpectedRollbackException.
+     * Crea una solicitud en estado PENDIENTE y dispara automáticamente la oferta
+     * al técnico más cercano.
+     * <p>
+     * Si la oferta falla (no hay técnicos disponibles, distancia > 13 km, ms-tecnicos
+     * caído, etc.), la solicitud queda en PENDIENTE sin romper la transacción.
+     * </p>
      */
     @Transactional
     public Solicitud crear(SolicitudRequest req) {
@@ -71,33 +72,43 @@ public class SolicitudService {
         s.setFechaCreacion(LocalDateTime.now());
 
         Solicitud guardada = solicitudes.save(s);
-        
+
         historial.save(new HistorialEstado(guardada.getId(), null, EstadoSolicitud.PENDIENTE,
                 "Solicitud creada por el cliente " + cliente.getNombre()));
+
+        // Disparar la oferta automática al técnico más cercano.
+        // Si falla, la solicitud queda en PENDIENTE (no rompemos la creación).
+        try {
+            ofertarAlMasCercano(guardada);
+        } catch (Exception e) {
+            log.warn("No se pudo ofertar automáticamente la solicitud {}: {}",
+                    guardada.getId(), e.getMessage());
+        }
 
         return guardada;
     }
 
     /**
-     * Oferta la solicitud al técnico más cercano.
-     * Usa REQUIRES_NEW para que sea una transacción independiente.
-     * Si falla, la solicitud queda en PENDIENTE sin revertir la creación.
+     * Busca el técnico más cercano con la especialidad de la solicitud y le envía
+     * la oferta. Si no hay candidatos, no hace nada (la solicitud queda en PENDIENTE).
      */
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void ofertarAutomaticamente(Long solicitudId, Long especialidadId, Double latitud,
-                                       Double longitud, LocalDateTime fechaHora, Prioridad prioridad) {
-        try {
-            var candidato = asignacionService.elegirTecnico(
-                    new ElegirTecnicoRequest(especialidadId, latitud, longitud, fechaHora, prioridad)
-            );
+    private void ofertarAlMasCercano(Solicitud s) {
+        var req = new ElegirTecnicoRequest(
+                s.getEspecialidadId(),
+                s.getLatitud(),
+                s.getLongitud(),
+                s.getFechaHoraProgramada(),
+                s.getPrioridad()
+        );
 
-            if (candidato != null && candidato.getTecnicoId() != null) {
-                asignacionService.ofertar(solicitudId, candidato.getTecnicoId());
-                log.info("Oferta enviada automáticamente al técnico {}", candidato.getTecnicoId());
-            }
-        } catch (Exception e) {
-            log.warn("No se pudo ofertar automáticamente: {}", e.getMessage());
+        var candidato = asignacionService.elegirTecnico(req);
+        if (candidato == null || candidato.getTecnicoId() == null) {
+            log.info("No hay técnicos disponibles para la solicitud {}, queda PENDIENTE", s.getId());
+            return;
         }
+
+        asignacionService.ofertar(s.getId(), candidato.getTecnicoId());
+        log.info("Solicitud {} ofertada al técnico {}", s.getId(), candidato.getTecnicoId());
     }
 
     public Solicitud obtener(Long id) {
@@ -118,11 +129,11 @@ public class SolicitudService {
     public Solicitud cambiarEstado(Long id, EstadoSolicitud nuevo, String observacion) {
         Solicitud s = obtener(id);
         EstadoSolicitud anterior = s.getEstado();
-        
+
         if (anterior == nuevo) {
             return s;
         }
-        
+
         s.setEstado(nuevo);
         solicitudes.save(s);
         historial.save(new HistorialEstado(id, anterior, nuevo, observacion));
@@ -133,7 +144,8 @@ public class SolicitudService {
     public Solicitud aprobarPresupuesto(Long id, Double importe) {
         Solicitud s = obtener(id);
         if (s.getEstado() != EstadoSolicitud.ASIGNADA) {
-            throw new ReglaDeNegocioException("Solo se puede aprobar presupuesto de una solicitud ASIGNADA (actual: " + s.getEstado() + ")");
+            throw new ReglaDeNegocioException(
+                    "Solo se puede aprobar presupuesto de una solicitud ASIGNADA (actual: " + s.getEstado() + ")");
         }
         return cambiarEstado(id, EstadoSolicitud.EN_CURSO,
                 "Cliente aprobó presupuesto por $" + importe);
@@ -152,7 +164,8 @@ public class SolicitudService {
     public Solicitud finalizar(Long id) {
         Solicitud s = obtener(id);
         if (s.getEstado() != EstadoSolicitud.EN_CURSO) {
-            throw new ReglaDeNegocioException("Solo se puede finalizar una solicitud EN_CURSO (actual: " + s.getEstado() + ")");
+            throw new ReglaDeNegocioException(
+                    "Solo se puede finalizar una solicitud EN_CURSO (actual: " + s.getEstado() + ")");
         }
         return cambiarEstado(id, EstadoSolicitud.FINALIZADA, "Servicio finalizado y cobrado");
     }
