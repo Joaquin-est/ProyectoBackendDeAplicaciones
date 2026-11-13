@@ -7,14 +7,10 @@ import com.patitosrl.ms_tecnicos.business.models.Tecnico;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 
-/**
- * Respuesta de un técnico. Su forma coincide con TecnicoRemoto de ms-solicitudes,
- * así que si se cambia algún campo hay que avisar a ese módulo.
- */
 @Data
 @AllArgsConstructor
 public class TecnicoResponse {
-    private Long id;
+    private String id;
     private String nombre;
     private String apellido;
     private String dni;
@@ -24,10 +20,8 @@ public class TecnicoResponse {
     private List<ItemResponse> certificaciones;
     private List<ItemResponse> zonasCobertura;
 
-    /** Par id/nombre que se usa tanto para certificaciones como para zonas. */
     public record ItemResponse(Long id, String nombre) { }
 
-    /** Método estático para convertir la Entidad al DTO de respuesta */
     public static TecnicoResponse desde(Tecnico t) {
         return new TecnicoResponse(
                 t.getId(), t.getNombre(), t.getApellido(), t.getDni(),

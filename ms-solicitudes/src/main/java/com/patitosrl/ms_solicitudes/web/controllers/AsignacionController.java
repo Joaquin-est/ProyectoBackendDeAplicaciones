@@ -36,7 +36,7 @@ public class AsignacionController {
     /** Enviar la oferta al técnico. Pasa a OFERTADA con vencimiento de 15 min (RN-3). */
     @PostMapping("/{id}/ofertar/{tecnicoId}")
     public ResponseEntity<SolicitudResponse> ofertar(@PathVariable Long id,
-                                                     @PathVariable Long tecnicoId) {
+                                                     @PathVariable String tecnicoId) {
         Solicitud s = service.ofertar(id, tecnicoId);
         return ResponseEntity.ok(SolicitudResponse.desde(s));
     }
@@ -44,14 +44,14 @@ public class AsignacionController {
     /** El técnico acepta la oferta. Calcula costo final y pasa a ASIGNADA. */
     @PostMapping("/{id}/aceptar/{tecnicoId}")
     public ResponseEntity<SolicitudResponse> aceptar(@PathVariable Long id,
-                                                     @PathVariable Long tecnicoId) {
+                                                     @PathVariable String tecnicoId) {
         return ResponseEntity.ok(SolicitudResponse.desde(service.aceptar(id, tecnicoId)));
     }
 
     /** El técnico rechaza la oferta. La solicitud vuelve a PENDIENTE. */
     @PostMapping("/{id}/rechazar/{tecnicoId}")
     public ResponseEntity<SolicitudResponse> rechazar(@PathVariable Long id,
-                                                      @PathVariable Long tecnicoId,
+                                                      @PathVariable String tecnicoId,
                                                       @RequestParam(required = false) String motivo) {
         return ResponseEntity.ok(SolicitudResponse.desde(service.rechazar(id, tecnicoId, motivo)));
     }

@@ -34,29 +34,38 @@ class AsignacionServiceTest {
 
     @Test
     void debeLanzarExcepcionSiElTecnicoNoEstaDisponible() {
+        Long solicitudId = 1L;
+        String tecnicoId = "2";
+
         Solicitud s = new Solicitud();
         s.setEstado(EstadoSolicitud.PENDIENTE);
-        when(solicitudes.findById(1L)).thenReturn(Optional.of(s));
-        
-        TecnicoRemoto t = new TecnicoRemoto();
-        t.setDisponible(false);
-        when(tecnicos.buscarPorId(2L)).thenReturn(t);
+        when(solicitudes.findById(solicitudId)).thenReturn(Optional.of(s));
 
-        assertThrows(ReglaDeNegocioException.class, () -> service.ofertar(1L, 2L));
+        TecnicoRemoto t = new TecnicoRemoto();
+        t.setId(tecnicoId);
+        t.setDisponible(false);
+        when(tecnicos.buscarPorId(tecnicoId)).thenReturn(t);
+
+        assertThrows(ReglaDeNegocioException.class, () -> service.ofertar(solicitudId, tecnicoId));
     }
 
     @Test
     void debeLanzarExcepcionSiElTecnicoYaTieneUnaSolicitudEnCurso() {
+        Long solicitudId = 1L;
+        String tecnicoId = "2";
+
         Solicitud s = new Solicitud();
         s.setEstado(EstadoSolicitud.PENDIENTE);
-        when(solicitudes.findById(1L)).thenReturn(Optional.of(s));
-        
+        when(solicitudes.findById(solicitudId)).thenReturn(Optional.of(s));
+
         TecnicoRemoto t = new TecnicoRemoto();
+        t.setId(tecnicoId);
         t.setDisponible(true);
-        when(tecnicos.buscarPorId(2L)).thenReturn(t);
-        when(solicitudes.findByTecnicoIdAndEstado(2L, EstadoSolicitud.EN_CURSO))
+        when(tecnicos.buscarPorId(tecnicoId)).thenReturn(t);
+
+        when(solicitudes.findByTecnicoIdAndEstado(tecnicoId, EstadoSolicitud.EN_CURSO))
                 .thenReturn(List.of(new Solicitud()));
 
-        assertThrows(ReglaDeNegocioException.class, () -> service.ofertar(1L, 2L));
+        assertThrows(ReglaDeNegocioException.class, () -> service.ofertar(solicitudId, tecnicoId));
     }
 }

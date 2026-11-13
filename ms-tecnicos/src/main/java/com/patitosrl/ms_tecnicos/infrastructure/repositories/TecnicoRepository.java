@@ -8,11 +8,7 @@ import org.springframework.stereotype.Repository;
 import com.patitosrl.ms_tecnicos.business.models.Tecnico;
 
 @Repository
-public interface TecnicoRepository extends JpaRepository<Tecnico, Long> {
-
-    /** Busca todos los técnicos que estén disponibles. */
+public interface TecnicoRepository extends JpaRepository<Tecnico, String> {
     List<Tecnico> findByDisponibleTrue();
-
-    /** Se usa para validar que no se registren dos técnicos con el mismo DNI. */
     boolean existsByDni(String dni);
 }

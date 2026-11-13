@@ -44,7 +44,7 @@ public class TecnicosClient {
         }
     }
 
-    public TecnicoRemoto buscarPorId(Long id) {
+    public TecnicoRemoto buscarPorId(String id) {
         try {
             String token = getToken();
             TecnicoRemoto tecnico = restClient.get()
@@ -52,12 +52,10 @@ public class TecnicosClient {
                     .header("Authorization", "Bearer " + token)
                     .retrieve()
                     .body(TecnicoRemoto.class);
-                    
             if (tecnico == null) {
                 throw new TecnicoNoEncontradoException(id);
             }
             return tecnico;
-            
         } catch (HttpClientErrorException.NotFound e) {
             throw new TecnicoNoEncontradoException(id);
         } catch (ResourceAccessException e) {

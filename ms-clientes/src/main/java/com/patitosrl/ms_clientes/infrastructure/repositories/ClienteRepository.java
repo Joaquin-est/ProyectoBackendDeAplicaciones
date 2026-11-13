@@ -6,8 +6,6 @@ import org.springframework.stereotype.Repository;
 import com.patitosrl.ms_clientes.business.models.Cliente;
 
 @Repository
-public interface ClienteRepository extends JpaRepository<Cliente, Long> {
-
-    /** Se usa para validar que no se registren dos clientes con el mismo DNI. */
+public interface ClienteRepository extends JpaRepository<Cliente, String> {
     boolean existsByDni(String dni);
 }

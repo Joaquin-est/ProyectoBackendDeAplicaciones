@@ -24,19 +24,19 @@ public class ClienteService {
         return clientes.findAll();
     }
 
-    /** Lo consume ms-solicitudes para tomar el snapshot del cliente. */
-    public Cliente obtener(Long id) {
+    public Cliente obtener(String id) {
         return clientes.findById(id)
                 .orElseThrow(() -> new ClienteNoEncontradoException(id));
     }
 
     @Transactional
-    public Cliente crear(ClienteRequest req) {
+    public Cliente crear(ClienteRequest req, String keycloakId) {
         if (clientes.existsByDni(req.getDni())) {
             throw new ReglaDeNegocioException("Ya existe un cliente con DNI " + req.getDni());
         }
 
         Cliente c = Cliente.builder()
+                .id(keycloakId) // El ID es el keycloakId
                 .nombre(req.getNombre())
                 .apellido(req.getApellido())
                 .dni(req.getDni())
@@ -46,5 +46,16 @@ public class ClienteService {
         return clientes.save(c);
     }
 
-    
+    @Transactional
+    public Cliente sincronizar(String keycloakId, String nombre, String email) {
+        return clientes.findById(keycloakId)
+                .orElseGet(() -> clientes.save(Cliente.builder()
+                        .id(keycloakId)
+                        .nombre(nombre)
+                        .apellido("")
+                        .dni("")
+                        .latitud(0.0)
+                        .longitud(0.0)
+                        .build()));
+    }
 }

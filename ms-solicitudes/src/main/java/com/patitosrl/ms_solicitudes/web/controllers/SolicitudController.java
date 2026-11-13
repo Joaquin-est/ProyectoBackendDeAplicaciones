@@ -4,6 +4,8 @@ import java.net.URI;
 import java.util.List;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import com.patitosrl.ms_solicitudes.business.models.HistorialEstado;
@@ -28,8 +30,12 @@ public class SolicitudController {
     @PostMapping
     @Operation(summary = "Crear una nueva solicitud", 
                description = "Crea una solicitud en estado PENDIENTE y dispara automáticamente la oferta al técnico más cercano.")
-    public ResponseEntity<SolicitudResponse> crear(@Valid @RequestBody SolicitudRequest req) {
-        Solicitud s = service.crear(req);
+    public ResponseEntity<SolicitudResponse> crear(@Valid @RequestBody SolicitudRequest req,
+                                                   @AuthenticationPrincipal Jwt jwt) {
+        String clienteKeycloakId = jwt.getSubject();
+        // El servicio ahora se encarga de buscar al técnico y ofertar automáticamente
+        Solicitud s = service.crear(req, clienteKeycloakId);
+        
         return ResponseEntity.created(URI.create("/api/solicitudes/" + s.getId()))
                 .body(SolicitudResponse.desde(s));
     }
@@ -40,10 +46,37 @@ public class SolicitudController {
         return ResponseEntity.ok(service.listar().stream().map(SolicitudResponse::desde).toList());
     }
 
+    @GetMapping("/mis-solicitudes")
+    @Operation(summary = "Ver mis solicitudes (Cliente)")
+    public ResponseEntity<List<SolicitudResponse>> misSolicitudes(@AuthenticationPrincipal Jwt jwt) {
+        String clienteKeycloakId = jwt.getSubject();
+        return ResponseEntity.ok(service.listarPorCliente(clienteKeycloakId).stream()
+                .map(SolicitudResponse::desde).toList());
+    }
+
+    @GetMapping("/mis-ofertas")
+    @Operation(summary = "Ver mis ofertas (Técnico)")
+    public ResponseEntity<List<SolicitudResponse>> misOfertas(@AuthenticationPrincipal Jwt jwt) {
+        String tecnicoKeycloakId = jwt.getSubject();
+        return ResponseEntity.ok(service.listarPorTecnico(tecnicoKeycloakId).stream()
+                .map(SolicitudResponse::desde).toList());
+    }
+
     @GetMapping("/{id}")
     @Operation(summary = "Obtener una solicitud por ID")
-    public ResponseEntity<SolicitudResponse> obtener(@PathVariable Long id) {
-        return ResponseEntity.ok(SolicitudResponse.desde(service.obtener(id)));
+    public ResponseEntity<SolicitudResponse> obtener(@PathVariable Long id,
+                                                     @AuthenticationPrincipal Jwt jwt) {
+        Solicitud s = service.obtener(id);
+        // Validación de propiedad: Admin ve todo, Cliente solo lo suyo, Técnico solo lo suyo
+        boolean esAdmin = jwt.getClaimAsStringList("realm_access.roles") != null
+                && jwt.getClaimAsStringList("realm_access.roles").contains("ADMIN");
+        boolean esDueno = s.getClienteId().equals(jwt.getSubject());
+        boolean esTecnicoAsignado = s.getTecnicoId() != null && s.getTecnicoId().equals(jwt.getSubject());
+        
+        if (!esAdmin && !esDueno && !esTecnicoAsignado) {
+            throw new org.springframework.security.access.AccessDeniedException("No tenés permiso para ver esta solicitud");
+        }
+        return ResponseEntity.ok(SolicitudResponse.desde(s));
     }
 
     @GetMapping("/{id}/historial")
@@ -54,8 +87,7 @@ public class SolicitudController {
 
     @PostMapping("/{id}/aprobar-presupuesto")
     @Operation(summary = "Aprobar el presupuesto")
-    public ResponseEntity<SolicitudResponse> aprobar(@PathVariable Long id,
-                                                     @RequestParam Double importe) {
+    public ResponseEntity<SolicitudResponse> aprobar(@PathVariable Long id, @RequestParam Double importe) {
         return ResponseEntity.ok(SolicitudResponse.desde(service.aprobarPresupuesto(id, importe)));
     }
 

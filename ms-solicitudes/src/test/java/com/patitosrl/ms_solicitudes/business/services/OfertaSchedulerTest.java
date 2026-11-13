@@ -31,7 +31,7 @@ class OfertaSchedulerTest {
         Solicitud vencida = new Solicitud();
         vencida.setId(1L);
         vencida.setEstado(EstadoSolicitud.OFERTADA);
-        vencida.setTecnicoId(10L);
+        vencida.setTecnicoId("10");              // ← antes: 10L
         vencida.setTecnicoNombre("Juan Perez");
         vencida.setOfertaExpira(LocalDateTime.now().minusMinutes(1));
 
@@ -40,9 +40,9 @@ class OfertaSchedulerTest {
 
         scheduler.vencerOfertas();
 
-        verify(solicitudes, times(1)).save(argThat(s -> 
-            s.getEstado() == EstadoSolicitud.PENDIENTE && 
-            s.getTecnicoId() == null && 
+        verify(solicitudes, times(1)).save(argThat(s ->
+            s.getEstado() == EstadoSolicitud.PENDIENTE &&
+            s.getTecnicoId() == null &&
             s.getOfertaExpira() == null
         ));
         verify(historial, times(1)).save(any());

@@ -8,10 +8,9 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ClienteRemoto {
-    private Long id;
+    private String id;
     private String nombre;
     private String apellido;
     private Double latitud;
     private Double longitud;
-    // Podés agregar más campos si los necesitás para el snapshot
 }

@@ -20,9 +20,6 @@ public class ClientesClient {
         this.restClient = clientesRestClient;
     }
 
-    /**
-     * Obtiene el token JWT del contexto de seguridad actual.
-     */
     private String getToken() {
         var authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication instanceof JwtAuthenticationToken jwtAuth) {
@@ -31,21 +28,18 @@ public class ClientesClient {
         return null;
     }
 
-    public ClienteRemoto buscarPorId(Long id) {
+    public ClienteRemoto buscarPorId(String id) {
         try {
             String token = getToken();
-            
             ClienteRemoto cliente = restClient.get()
                     .uri("/api/clientes/{id}", id)
-                    .header("Authorization", "Bearer " + token) // <-- Propagar el token
+                    .header("Authorization", "Bearer " + token)
                     .retrieve()
                     .body(ClienteRemoto.class);
-                    
             if (cliente == null) {
                 throw new ClienteNoEncontradoException(id);
             }
             return cliente;
-            
         } catch (HttpClientErrorException.NotFound e) {
             throw new ClienteNoEncontradoException(id);
         } catch (ResourceAccessException e) {

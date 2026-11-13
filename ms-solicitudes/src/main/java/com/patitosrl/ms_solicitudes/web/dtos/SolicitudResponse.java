@@ -15,7 +15,8 @@ import lombok.Data;
 @AllArgsConstructor
 public class SolicitudResponse {
     private Long id;
-    private Long clienteId;
+    private String clienteId;
+    private String clienteNombre;
     private String domicilio;
     private List<TipoServicio> tiposServicio;
     private String marca;
@@ -24,25 +25,19 @@ public class SolicitudResponse {
     private EstadoSolicitud estado;
     private Prioridad prioridad;
     private LocalDateTime fechaHoraProgramada;
-    
-    // Datos del técnico asignado (si lo hubiera)
-    private Long tecnicoId;
+    private String tecnicoId;
     private String tecnicoNombre;
-    
-    // Datos del costo calculado (RN-11)
     private Double distanciaKm;
     private Integer tiempoEstimadoMin;
     private String estrategiaCosto;
     private Double costoBase;
     private Double recargo;
     private Double total;
-    
     private LocalDateTime fechaCreacion;
 
-    /** Método estático para convertir la Entidad al DTO de respuesta */
     public static SolicitudResponse desde(Solicitud s) {
         return new SolicitudResponse(
-                s.getId(), s.getClienteId(), s.getDomicilio(),
+                s.getId(), s.getClienteId(), s.getClienteNombre(), s.getDomicilio(),
                 s.getTiposServicio(), s.getMarca(), s.getModelo(), s.getDescripcion(),
                 s.getEstado(), s.getPrioridad(), s.getFechaHoraProgramada(),
                 s.getTecnicoId(), s.getTecnicoNombre(), s.getDistanciaKm(), s.getTiempoEstimadoMin(),

@@ -31,7 +31,7 @@ public class Solicitud {
 
     // --- Snapshot del Cliente ---
     @Column(name = "cliente_id", nullable = false)
-    private Long clienteId;
+    private String clienteId;
 
     @Column(name = "cliente_nombre", nullable = false, length = 120)
     private String clienteNombre;
@@ -81,7 +81,7 @@ public class Solicitud {
 
     // --- Snapshot Técnico / Oferta ---
     @Column(name = "tecnico_id")
-    private Long tecnicoId;
+    private String tecnicoId;
 
     @Column(name = "tecnico_nombre", length = 120)
     private String tecnicoNombre;

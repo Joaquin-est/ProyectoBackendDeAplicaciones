@@ -31,11 +31,11 @@ public class SolicitudRequest {
     private String modelo;
 
     @NotBlank(message = "La descripción es obligatoria")
-    @Size(max = 500, message = "La descripción no puede superar los 500 caracteres")
+    @Size(max = 500)
     private String descripcion;
 
     @NotNull(message = "La especialidad es obligatoria")
-    private Long especialidadId;
+    private Long especialidadId; // <-- CLAVE
 
     @NotNull(message = "La prioridad es obligatoria")
     private Prioridad prioridad;

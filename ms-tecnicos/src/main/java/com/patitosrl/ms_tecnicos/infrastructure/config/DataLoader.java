@@ -14,9 +14,6 @@ import com.patitosrl.ms_tecnicos.infrastructure.repositories.ZonaCoberturaReposi
 
 import lombok.RequiredArgsConstructor;
 
-/**
- * Carga técnicos, certificaciones y zonas de prueba en H2 al iniciar, si la base está vacía.
- */
 @Component
 @RequiredArgsConstructor
 public class DataLoader implements CommandLineRunner {
@@ -27,45 +24,35 @@ public class DataLoader implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        if (tecnicos.count() > 0) {
-            return;
-        }
+        if (tecnicos.count() > 0) return;
 
-        // 1. Certificaciones
         Certificacion redes = certificaciones.save(new Certificacion(null, "Redes"));
         Certificacion impresoras = certificaciones.save(new Certificacion(null, "Impresoras"));
         Certificacion notebooks = certificaciones.save(new Certificacion(null, "Notebooks Apple"));
 
-        // 2. Zonas
         ZonaCobertura centro = zonas.save(new ZonaCobertura(null, "Centro"));
         ZonaCobertura nuevaCordoba = zonas.save(new ZonaCobertura(null, "Nueva Córdoba"));
 
-        // 3. Técnicos
-        Tecnico t1 = Tecnico.builder()
+        tecnicos.saveAll(List.of(
+            Tecnico.builder()
+                .id("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
                 .nombre("Juan").apellido("Perez").dni("11111111")
-                .latitud(-31.415).longitud(-64.190) // Centro
-                .disponible(true)
+                .latitud(-31.415).longitud(-64.190).disponible(true)
                 .certificaciones(List.of(redes, impresoras))
-                .zonasCobertura(List.of(centro, nuevaCordoba))
-                .build();
-
-        Tecnico t2 = Tecnico.builder()
+                .zonasCobertura(List.of(centro, nuevaCordoba)).build(),
+            Tecnico.builder()
+                .id("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb")
                 .nombre("Ana").apellido("Gomez").dni("22222222")
-                .latitud(-31.430).longitud(-64.180) // Cerca del centro
-                .disponible(true)
+                .latitud(-31.430).longitud(-64.180).disponible(true)
                 .certificaciones(List.of(impresoras, notebooks))
-                .zonasCobertura(List.of(centro))
-                .build();
-
-        Tecnico t3 = Tecnico.builder()
+                .zonasCobertura(List.of(centro)).build(),
+            Tecnico.builder()
+                .id("cccccccc-cccc-cccc-cccc-cccccccccccc")
                 .nombre("Lejano").apellido("Lopez").dni("33333333")
-                .latitud(-31.424).longitud(-64.500) // Lejos (>13km)
-                .disponible(true)
+                .latitud(-31.424).longitud(-64.500).disponible(true)
                 .certificaciones(List.of(redes))
-                .zonasCobertura(List.of(centro))
-                .build();
-
-        tecnicos.saveAll(List.of(t1, t2, t3));
-        System.out.println("¡Datos de prueba cargados en H2! (3 técnicos, 3 certificaciones, 2 zonas)");
+                .zonasCobertura(List.of(centro)).build()
+        ));
+        System.out.println("Técnicos de prueba cargados.");
     }
 }

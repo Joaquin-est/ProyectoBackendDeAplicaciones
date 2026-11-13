@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.patitosrl.ms_solicitudes.business.exceptions.ReglaDeNegocioException;
@@ -32,27 +33,16 @@ public class SolicitudService {
     private final ClientesClient clientes;
     private final AsignacionService asignacionService;
 
-    /**
-     * Crea una solicitud en estado PENDIENTE y dispara automáticamente la oferta
-     * al técnico más cercano.
-     * <p>
-     * Si la oferta falla (no hay técnicos disponibles, distancia > 13 km, ms-tecnicos
-     * caído, etc.), la solicitud queda en PENDIENTE sin romper la transacción.
-     * </p>
-     */
     @Transactional
-    public Solicitud crear(SolicitudRequest req) {
-        // Regla RN-1: al menos un tipo de servicio
+    public Solicitud crear(SolicitudRequest req, String clienteKeycloakId) {
         if (req.getTiposServicio() == null || req.getTiposServicio().isEmpty()) {
             throw new ReglaDeNegocioException("Debe indicar al menos un tipo de servicio");
         }
 
-        // Consultamos al ms-clientes. Si está caído lanzará 503. Si no existe lanzará 404.
-        ClienteRemoto cliente = clientes.buscarPorId(req.getClienteId());
+        ClienteRemoto cliente = clientes.buscarPorId(clienteKeycloakId);
 
-        // Guardar la solicitud en estado PENDIENTE
         Solicitud s = new Solicitud();
-        s.setClienteId(cliente.getId());
+        s.setClienteId(clienteKeycloakId);
         s.setClienteNombre(cliente.getNombre() + " " + cliente.getApellido());
         s.setLatitud(cliente.getLatitud());
         s.setLongitud(cliente.getLongitud());
@@ -63,7 +53,6 @@ public class SolicitudService {
         s.setModelo(req.getModelo());
         s.setDescripcion(req.getDescripcion());
         s.setEspecialidadId(req.getEspecialidadId());
-
         s.setPrioridad(req.getPrioridad());
         s.setFechaHoraProgramada(req.getFechaHoraProgramada());
         s.setEsFeriado(Boolean.TRUE.equals(req.getEsFeriado()));
@@ -112,12 +101,19 @@ public class SolicitudService {
     }
 
     public Solicitud obtener(Long id) {
-        return solicitudes.findById(id)
-                .orElseThrow(() -> new SolicitudNoEncontradaException(id));
+        return solicitudes.findById(id).orElseThrow(() -> new SolicitudNoEncontradaException(id));
     }
 
     public List<Solicitud> listar() {
         return solicitudes.findAll();
+    }
+
+    public List<Solicitud> listarPorCliente(String clienteKeycloakId) {
+        return solicitudes.findByClienteId(clienteKeycloakId);
+    }
+
+    public List<Solicitud> listarPorTecnico(String tecnicoKeycloakId) {
+        return solicitudes.findByTecnicoIdAndEstado(tecnicoKeycloakId, EstadoSolicitud.OFERTADA);
     }
 
     public List<HistorialEstado> historial(Long id) {
@@ -147,8 +143,7 @@ public class SolicitudService {
             throw new ReglaDeNegocioException(
                     "Solo se puede aprobar presupuesto de una solicitud ASIGNADA (actual: " + s.getEstado() + ")");
         }
-        return cambiarEstado(id, EstadoSolicitud.EN_CURSO,
-                "Cliente aprobó presupuesto por $" + importe);
+        return cambiarEstado(id, EstadoSolicitud.EN_CURSO, "Cliente aprobó presupuesto por $" + importe);
     }
 
     @Transactional
