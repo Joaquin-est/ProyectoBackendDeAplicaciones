@@ -29,7 +29,7 @@ public class TecnicoService {
     private final ZonaCoberturaRepository zonas;
 
     @Value("${app.candidatos.radio-km:13.0}")
-    private double radioCandidatosKm;
+    private double radioCandidatosKm = 13.0;
 
     public List<Tecnico> listar() {
         return tecnicos.findAll();
