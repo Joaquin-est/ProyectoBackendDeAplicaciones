@@ -164,4 +164,108 @@ public class SolicitudService {
         }
         return cambiarEstado(id, EstadoSolicitud.FINALIZADA, "Servicio finalizado y cobrado");
     }
+
+        @Transactional
+    public Solicitud actualizar(Long id, SolicitudRequest req) {
+        Solicitud s = obtener(id);
+
+        if (s.getEstado() != EstadoSolicitud.PENDIENTE && s.getEstado() != EstadoSolicitud.OFERTADA) {
+            throw new ReglaDeNegocioException(
+                    "Solo se puede editar una solicitud PENDIENTE u OFERTADA (actual: " + s.getEstado() + ")");
+        }
+
+        // Si estaba ofertada, la edición invalida la oferta vigente
+        if (s.getEstado() == EstadoSolicitud.OFERTADA) {
+            s.setTecnicoId(null);
+            s.setTecnicoNombre(null);
+            s.setOfertaExpira(null);
+            s.setEstado(EstadoSolicitud.PENDIENTE);
+            historial.save(new HistorialEstado(id, EstadoSolicitud.OFERTADA, EstadoSolicitud.PENDIENTE,
+                    "Solicitud editada: oferta invalidada"));
+        }
+
+        s.setDomicilio(req.getDomicilio());
+        s.setTiposServicio(req.getTiposServicio());
+        s.setMarca(req.getMarca());
+        s.setModelo(req.getModelo());
+        s.setDescripcion(req.getDescripcion());
+        s.setEspecialidadId(req.getEspecialidadId());
+        s.setPrioridad(req.getPrioridad());
+        s.setFechaHoraProgramada(req.getFechaHoraProgramada());
+        s.setEsFeriado(Boolean.TRUE.equals(req.getEsFeriado()));
+
+        return solicitudes.save(s);
+    }
+
+    @Transactional
+    public Solicitud reprogramar(Long id, LocalDateTime nuevaFecha, String motivo) {
+        Solicitud s = obtener(id);
+
+        if (s.getEstado() != EstadoSolicitud.PENDIENTE
+                && s.getEstado() != EstadoSolicitud.OFERTADA
+                && s.getEstado() != EstadoSolicitud.ASIGNADA) {
+            throw new ReglaDeNegocioException(
+                    "No se puede reprogramar una solicitud en estado " + s.getEstado());
+        }
+
+        EstadoSolicitud anterior = s.getEstado();
+        s.setFechaHoraProgramada(nuevaFecha);
+        s.setEstado(EstadoSolicitud.REPROGRAMADA);
+
+        // Invalidar oferta si la había
+        s.setTecnicoId(null);
+        s.setTecnicoNombre(null);
+        s.setOfertaExpira(null);
+
+        solicitudes.save(s);
+        historial.save(new HistorialEstado(id, anterior, EstadoSolicitud.REPROGRAMADA,
+                "Reprogramada a " + nuevaFecha + (motivo == null ? "" : " — " + motivo)));
+        return s;
+    }
+
+    @Transactional
+    public Solicitud derivar(Long id, String tecnicoDestinoId, String motivo) {
+        Solicitud s = obtener(id);
+
+        if (s.getEstado() == EstadoSolicitud.FINALIZADA || s.getEstado() == EstadoSolicitud.CANCELADA) {
+            throw new ReglaDeNegocioException(
+                    "No se puede derivar una solicitud en estado " + s.getEstado());
+        }
+
+        EstadoSolicitud anterior = s.getEstado();
+        String tecnicoAnterior = s.getTecnicoId();
+
+        s.setTecnicoId(tecnicoDestinoId);
+        s.setTecnicoNombre(null); // se rellena cuando el destino acepte
+        s.setOfertaExpira(null);
+        s.setEstado(EstadoSolicitud.DERIVADA);
+
+        solicitudes.save(s);
+        historial.save(new HistorialEstado(id, anterior, EstadoSolicitud.DERIVADA,
+                "Derivada de técnico " + tecnicoAnterior + " a " + tecnicoDestinoId
+                        + (motivo == null ? "" : " — " + motivo)));
+        return s;
+    }
+
+    @Transactional
+    public Solicitud iniciar(Long id) {
+        Solicitud s = obtener(id);
+        if (s.getEstado() != EstadoSolicitud.ASIGNADA) {
+            throw new ReglaDeNegocioException(
+                    "Solo se puede iniciar una solicitud ASIGNADA (actual: " + s.getEstado() + ")");
+        }
+        return cambiarEstado(id, EstadoSolicitud.EN_CURSO, "Servicio iniciado (sin aprobación de presupuesto)");
+    }
+
+    @Transactional
+    public void eliminar(Long id) {
+        Solicitud s = obtener(id);
+        if (s.getEstado() != EstadoSolicitud.PENDIENTE && s.getEstado() != EstadoSolicitud.CANCELADA) {
+            throw new ReglaDeNegocioException(
+                    "Solo se puede eliminar una solicitud PENDIENTE o CANCELADA (actual: " + s.getEstado() + ")");
+        }
+        historial.deleteAll(historial.findBySolicitudIdOrderByTimestampAsc(id));
+        solicitudes.delete(s);
+    }
+
 }

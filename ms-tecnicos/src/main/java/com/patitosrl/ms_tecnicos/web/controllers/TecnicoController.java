@@ -60,4 +60,26 @@ public class TecnicoController {
         Tecnico t = service.sincronizar(req.getKeycloakId(), req.getNombre(), req.getEmail());
         return ResponseEntity.ok(TecnicoResponse.desde(t));
     }
+
+    @PutMapping("/{id}")
+    @Operation(summary = "Actualizar un técnico existente")
+    public ResponseEntity<TecnicoResponse> actualizar(@PathVariable String id,
+                                                      @Valid @RequestBody TecnicoRequest req) {
+        return ResponseEntity.ok(TecnicoResponse.desde(service.actualizar(id, req)));
+    }
+
+    @PatchMapping("/{id}/disponibilidad")
+    @Operation(summary = "Cambiar disponibilidad del técnico (para aceptar/liberar ofertas)")
+    public ResponseEntity<TecnicoResponse> cambiarDisponibilidad(@PathVariable String id,
+                                                                 @RequestParam boolean disponible) {
+        return ResponseEntity.ok(TecnicoResponse.desde(service.cambiarDisponibilidad(id, disponible)));
+    }
+
+    @DeleteMapping("/{id}")
+    @Operation(summary = "Eliminar un técnico")
+    public ResponseEntity<Void> eliminar(@PathVariable String id) {
+        service.eliminar(id);
+        return ResponseEntity.noContent().build();
+    }
+
 }

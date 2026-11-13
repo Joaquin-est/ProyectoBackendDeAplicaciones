@@ -17,6 +17,7 @@ import com.patitosrl.ms_solicitudes.business.services.costo.CostoVisitaStrategy;
 import com.patitosrl.ms_solicitudes.infrastructure.clients.TecnicosClient;
 import com.patitosrl.ms_solicitudes.infrastructure.repositories.HistorialEstadoRepository;
 import com.patitosrl.ms_solicitudes.infrastructure.repositories.SolicitudRepository;
+import com.patitosrl.ms_solicitudes.web.dtos.CandidatoResponse;
 import com.patitosrl.ms_solicitudes.web.dtos.ElegirTecnicoRequest;
 import com.patitosrl.ms_solicitudes.web.dtos.ElegirTecnicoResponse;
 
@@ -41,8 +42,9 @@ public class AsignacionService {
                 .filter(t -> Boolean.TRUE.equals(t.getDisponible()))
                 .filter(t -> t.getCertificaciones() != null && !t.getCertificaciones().isEmpty())
                 .filter(t -> t.getCertificaciones().stream()
-                        .anyMatch(c -> c.getId().equals(req.getEspecialidadId())))
+                .anyMatch(c -> String.valueOf(req.getEspecialidadId()).equals(c.getId())))
                 .toList();
+
 
         if (disponibles.isEmpty()) {
             throw new ReglaDeNegocioException("No hay técnicos disponibles con la especialidad " + req.getEspecialidadId());
@@ -162,6 +164,28 @@ public class AsignacionService {
         historial.save(new HistorialEstado(s.getId(), EstadoSolicitud.OFERTADA, EstadoSolicitud.PENDIENTE,
                 "Técnico rechazó: " + (motivo == null ? "sin motivo" : motivo)));
         return s;
+    }
+
+        public List<CandidatoResponse> listarCandidatos(Long solicitudId) {
+        Solicitud s = solicitudes.findById(solicitudId)
+                .orElseThrow(() -> new ReglaDeNegocioException("Solicitud inexistente: " + solicitudId));
+
+        String especialidadRequerida = String.valueOf(s.getEspecialidadId());
+
+        return tecnicos.listar().stream()
+                .filter(t -> Boolean.TRUE.equals(t.getDisponible()))
+                .filter(t -> t.getCertificaciones() != null && !t.getCertificaciones().isEmpty())
+                .filter(t -> t.getCertificaciones().stream()
+                        .anyMatch(c -> especialidadRequerida.equals(c.getId())))
+                .map(t -> new TecnicoConDistancia(t, haversine(
+                        s.getLatitud(), s.getLongitud(), t.getLatitud(), t.getLongitud())))
+                .filter(td -> td.distanciaKm() <= RADIO_CERCANIA_KM)
+                .sorted(Comparator.comparingDouble(TecnicoConDistancia::distanciaKm))
+                .map(td -> new CandidatoResponse(
+                        td.tecnico().getId(),
+                        td.tecnico().getNombre() + " " + td.tecnico().getApellido(),
+                        redondear(td.distanciaKm())))
+                .toList();
     }
 
     private double haversine(double lat1, double lon1, double lat2, double lon2) {

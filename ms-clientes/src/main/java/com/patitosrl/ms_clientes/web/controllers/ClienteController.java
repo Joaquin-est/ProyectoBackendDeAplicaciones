@@ -10,6 +10,7 @@ import com.patitosrl.ms_clientes.business.services.ClienteService;
 import com.patitosrl.ms_clientes.web.dtos.ClienteRequest;
 import com.patitosrl.ms_clientes.web.dtos.ClienteResponse;
 import com.patitosrl.ms_clientes.web.dtos.ClienteSyncRequest;
+import com.patitosrl.ms_clientes.web.dtos.CoordenadasRequest;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -49,5 +50,28 @@ public class ClienteController {
     public ResponseEntity<ClienteResponse> sincronizar(@RequestBody ClienteSyncRequest req) {
         Cliente c = service.sincronizar(req.getKeycloakId(), req.getNombre(), req.getEmail());
         return ResponseEntity.ok(ClienteResponse.desde(c));
+    }
+
+
+        @PutMapping("/{id}")
+    @Operation(summary = "Actualizar un cliente existente")
+    public ResponseEntity<ClienteResponse> actualizar(@PathVariable String id,
+                                                      @Valid @RequestBody ClienteRequest req) {
+        return ResponseEntity.ok(ClienteResponse.desde(service.actualizar(id, req)));
+    }
+
+    @PatchMapping("/{id}/coordenadas")
+    @Operation(summary = "Actualizar solo la ubicación (lat/lon) del cliente")
+    public ResponseEntity<ClienteResponse> actualizarUbicacion(@PathVariable String id,
+                                                               @Valid @RequestBody CoordenadasRequest req) {
+        return ResponseEntity.ok(ClienteResponse.desde(
+                service.actualizarUbicacion(id, req.getLatitud(), req.getLongitud())));
+    }
+
+    @DeleteMapping("/{id}")
+    @Operation(summary = "Eliminar un cliente")
+    public ResponseEntity<Void> eliminar(@PathVariable String id) {
+        service.eliminar(id);
+        return ResponseEntity.noContent().build();
     }
 }

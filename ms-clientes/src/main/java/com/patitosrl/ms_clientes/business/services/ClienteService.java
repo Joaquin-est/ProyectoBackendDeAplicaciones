@@ -118,4 +118,38 @@ public class ClienteService {
                         .longitud(0.0)
                         .build()));
     }
+
+        @Transactional
+    public Cliente actualizar(String id, ClienteRequest req) {
+        Cliente c = obtener(id);
+
+        if (!c.getDni().equals(req.getDni()) && clientes.existsByDni(req.getDni())) {
+            throw new ReglaDeNegocioException("Ya existe un cliente con DNI " + req.getDni());
+        }
+
+        c.setNombre(req.getNombre());
+        c.setApellido(req.getApellido());
+        c.setDni(req.getDni());
+        c.setLatitud(req.getLatitud());
+        c.setLongitud(req.getLongitud());
+        return clientes.save(c);
+    }
+
+    @Transactional
+    public Cliente actualizarUbicacion(String id, Double latitud, Double longitud) {
+        Cliente c = obtener(id);
+        c.setLatitud(latitud);
+        c.setLongitud(longitud);
+        return clientes.save(c);
+    }
+
+    /**
+     * Borra el cliente de la base local. OJO: NO borra el usuario en Keycloak.
+     * Si querés borrado completo, hay que llamar al Admin API de Keycloak aquí.
+     */
+    @Transactional
+    public void eliminar(String id) {
+        Cliente c = obtener(id);
+        clientes.delete(c);
+    }
 }

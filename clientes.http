@@ -1,7 +1,7 @@
 ### Variables globales
 @gateway = http://localhost:41071
 @msClientes = http://localhost:41074
-@token = PEGAR_TOKEN_AQUI
+@token = eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJWcjVja282TmJtNnl5QmhXaDBZalBlRXQwUUJIallJekp1R2xtOXU2a3NNIn0.eyJleHAiOjE3OTQ1OTUxNzQsImlhdCI6MTc5NDU5NDg3NCwianRpIjoiNWYxNTkwZWItY2U2NS00MTYyLThmNDctMzFiMGE4NmEwYmRhIiwiaXNzIjoiaHR0cDovL2tlZXljbG9hayA6ODA4MC9yZWFsbXMv cGF0aXRvIiwic3ViIjoiYjAyMDU1NjAtYmQxYy00OGUzLTk4ZmYtMzE4NDJldmI4OTg5IiwidHlwIjoiQmVhcmVyIiwiYXpwIjoi cGF0aXRvLWFwaSIsInNlc3Npb25fc3RhdGUiOiI0OWRkMzhhOS0xNmUxLTRhZWUtOWFkZS01ZWIzNWExODA0MjYiLCJhY3IiOiIxIiwiYWxsb3dlZC1vcmlnaW5zIjpbImh0dHA6Ly9sb2NhbGhvc3Q6NDEwNzEiXSwicmVhbG1fYWNjZXNzIjp7InJvbGVzIjpbIkFETUlOIiwiQ0xJRU5URSJdfSwic2NvcGUiOiJlbWFpbCBwcm9maWxlIiwic2lkIjoiNDlkZDM4YTktMTZlMS00YWVlLTlhZGUtNWViYzVhNzgwNDI2IiwiZW1haWxfdmVyaWZpZWQiOnRydWUsIm5hbWUiOiJDYXJsbyBH YXJjaWEiLCJwcmVmZXJyZWQtdXNlcm5hbWUiOiJjbGllbnRlMSIsImdpdmVuLW5hbWUiOiJDYXJsbyIsImZhbWlseS1uYW1lIjoiR2FyY2lhIiwiZW1haWwiOiJjbGllbnRlMUB0ZXN0LmNvbSJ9.L8MytMq-6dUJcemmVD-k_PcGJP-ChFoNgQ277wLeh0ny5eVemsg9U9mRuewoKFyUtGN3QzSVepTX0j-L1FTRSON0CYxcHOeGhTp8feJK8pwLiR3zCAleWQEGCvPOG3WqY5MoLvKarQVLkCHxgnojGD8iB6lBuyWt5tvjBi6Lq7VmdwZFQMJBHcIP5X-XsaQP9FFOTlG6pau0F9vtyrkJrD3x0R77swbkdahbd2OFKxzQVuuiopO5n1CoF2VG0eC3enMkD8VDJ4CtBkCDPfDVkzmoD2ilIaRchpDWjFvgpZTdrfDD9h4s3AcIh_QWvr24PHczMaXJpHN49Z9hYZojrg
 
 # ==========================================
 # ACCESO DIRECTO AL MICROSERVICIO (Sin Gateway)
@@ -34,3 +34,54 @@ Authorization: Bearer {{token}}
 ### 6. Obtener un cliente por ID (vía Gateway)
 GET {{gateway}}/api/clientes/1
 Authorization: Bearer {{token}}
+
+### 7. Crear un nuevo cliente
+POST http://localhost:41071/api/login
+Content-Type: application/json
+
+{ "username": "cliente1", "password": "1234" }
+
+### Actualizar cliente
+PUT http://localhost:41071/api/clientes/11111111-1111-1111-1111-111111111111
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "nombre": "Carlos",
+  "apellido": "Garcia Editado",
+  "dni": "44444444",
+  "latitud": -31.420,
+  "longitud": -64.188
+}
+
+### Toggle disponibilidad de técnico
+PATCH http://localhost:41071/api/tecnicos/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/disponibilidad?disponible=false
+Authorization: Bearer {{token}}
+
+### Listar certificaciones
+GET http://localhost:41071/api/tecnicos/certificaciones
+Authorization: Bearer {{token}}
+
+### Ver candidatos de una solicitud
+GET http://localhost:41071/api/solicitudes/1/candidatos
+Authorization: Bearer {{token}}
+
+### Reprogramar
+POST http://localhost:41071/api/solicitudes/1/reprogramar
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "nuevaFecha": "2026-12-01T15:00:00",
+  "motivo": "El cliente no estaba"
+}
+
+### Login programático
+POST http://localhost:41071/api/login
+Content-Type: application/json
+
+{
+  "username": "cliente1",
+  "password": "1234"
+}
+

@@ -112,4 +112,39 @@ public class TecnicoService {
                  * Math.sin(dLon / 2) * Math.sin(dLon / 2);
         return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     }
+
+    @Transactional
+    public Tecnico actualizar(String id, TecnicoRequest req) {
+        Tecnico t = obtener(id);
+
+        if (!t.getDni().equals(req.getDni()) && tecnicos.existsByDni(req.getDni())) {
+            throw new ReglaDeNegocioException("Ya existe un técnico con DNI " + req.getDni());
+        }
+
+        t.setNombre(req.getNombre());
+        t.setApellido(req.getApellido());
+        t.setDni(req.getDni());
+        t.setLatitud(req.getLatitud());
+        t.setLongitud(req.getLongitud());
+        if (req.getDisponible() != null) {
+            t.setDisponible(req.getDisponible());
+        }
+        t.setCertificaciones(buscarCertificaciones(req.getCertificacionIds()));
+        t.setZonasCobertura(buscarZonas(req.getZonaCoberturaIds()));
+
+        return tecnicos.save(t);
+    }
+
+    @Transactional
+    public Tecnico cambiarDisponibilidad(String id, boolean disponible) {
+        Tecnico t = obtener(id);
+        t.setDisponible(disponible);
+        return tecnicos.save(t);
+    }
+
+    @Transactional
+    public void eliminar(String id) {
+        Tecnico t = obtener(id);
+        tecnicos.delete(t); // Hibernate limpia las tablas de join ManyToMany
+    }
 }

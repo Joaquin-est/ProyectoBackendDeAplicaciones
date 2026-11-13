@@ -1,6 +1,9 @@
 package com.patitosrl.ms_solicitudes.web.controllers;
 
+import java.util.List;
+
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -8,14 +11,19 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+
 import com.patitosrl.ms_solicitudes.business.models.Solicitud;
 import com.patitosrl.ms_solicitudes.business.services.AsignacionService;
+import com.patitosrl.ms_solicitudes.web.dtos.CandidatoResponse;
 import com.patitosrl.ms_solicitudes.web.dtos.ElegirTecnicoRequest;
 import com.patitosrl.ms_solicitudes.web.dtos.ElegirTecnicoResponse;
 import com.patitosrl.ms_solicitudes.web.dtos.SolicitudResponse;
 
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+
+
 
 @RestController
 @RequestMapping("/api/solicitudes")
@@ -55,4 +63,12 @@ public class AsignacionController {
                                                       @RequestParam(required = false) String motivo) {
         return ResponseEntity.ok(SolicitudResponse.desde(service.rechazar(id, tecnicoId, motivo)));
     }
+
+        @GetMapping("/{id}/candidatos")
+    @Operation(summary = "Listar técnicos candidatos para una solicitud existente")
+    public ResponseEntity<List<CandidatoResponse>> candidatos(@PathVariable Long id) {
+        return ResponseEntity.ok(service.listarCandidatos(id));
+    }
+    
+
 }
