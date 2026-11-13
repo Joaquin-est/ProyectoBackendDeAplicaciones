@@ -3,8 +3,6 @@ package com.patitosrl.ms_clientes.web.controllers;
 import java.util.List;
 
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import com.patitosrl.ms_clientes.business.models.Cliente;
@@ -39,11 +37,10 @@ public class ClienteController {
     }
 
     @PostMapping
-    @Operation(summary = "Registrar un nuevo cliente (desde Keycloak)")
-    public ResponseEntity<ClienteResponse> crear(@Valid @RequestBody ClienteRequest req, @AuthenticationPrincipal Jwt jwt) {
-        // El keycloakId se obtiene del token JWT (campo 'sub')
-        String keycloakId = jwt.getSubject();
-        Cliente c = service.crear(req, keycloakId);
+    @Operation(summary = "Registrar un nuevo cliente en Keycloak y H2")
+    public ResponseEntity<ClienteResponse> crear(@Valid @RequestBody ClienteRequest req) {
+        // El servicio ahora se encarga de crear en Keycloak y guardar el UUID
+        Cliente c = service.crear(req);
         return ResponseEntity.ok(ClienteResponse.desde(c));
     }
 
