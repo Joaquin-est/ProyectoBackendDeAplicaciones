@@ -71,7 +71,7 @@ services:
       - patito-net
     restart: unless-stopped
     volumes:
-      - ./data/ms-solicitudes:/app/data
+      - ms-solicitudes-data:/app/data
 
   # ==========================================
   # MS-TECNICOS
@@ -93,7 +93,7 @@ services:
       - patito-net
     restart: unless-stopped
     volumes:
-      - ./data/ms-tecnicos:/app/data
+      - ms-tecnicos-data:/app/data
 
   # ==========================================
   # MS-CLIENTES

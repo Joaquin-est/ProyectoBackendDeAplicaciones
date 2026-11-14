@@ -71,7 +71,7 @@ public class AuthController {
         }
     }
 
-    private static final String CLIENT_SECRET = "d8Lwbv44FWboVSKG3FDrVHsOisq8wULZ";
+    private static final String CLIENT_SECRET = "patito-secret-1234";
 
     @PostMapping("/api/login")
     public org.springframework.http.ResponseEntity<com.patitosrl.gateway.dto.AuthDtos.TokenResponse> login(

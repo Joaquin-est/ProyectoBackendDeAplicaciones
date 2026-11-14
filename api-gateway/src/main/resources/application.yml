@@ -5,7 +5,7 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: http://localhost:41090/realms/patito
+          issuer-uri: http://keycloak:8080/realms/patito
           jwk-set-uri: http://keycloak:8080/realms/patito/protocol/openid-connect/certs
 
   cloud:

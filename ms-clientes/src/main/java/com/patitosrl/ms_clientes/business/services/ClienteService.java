@@ -61,7 +61,7 @@ public class ClienteService {
             // A. Obtener Token de Admin (Client Credentials)
             String tokenBody = "grant_type=client_credentials" +
                                "&client_id=patito-api" +
-                               "&client_secret=GqcfBK6kuQGuGr9WLQTdUXEv97cxNSmz";
+                               "&client_secret=patito-secret-1234";
 
             Map tokenResponse = keycloakWebClient.post()
                     .uri("/realms/patito/protocol/openid-connect/token")

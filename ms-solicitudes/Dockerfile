@@ -26,6 +26,10 @@ WORKDIR /app
 
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
+
+# Crear carpeta /app/data con permisos para appuser (CRÍTICO para H2)
+RUN mkdir -p /app/data && chown -R appuser:appgroup /app/data
+
 COPY --from=build --chown=appuser:appgroup /app/ms-solicitudes/target/ms-solicitudes-1.0.0-SNAPSHOT.jar /app/app.jar
 
 USER appuser

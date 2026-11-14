@@ -11,14 +11,15 @@ spring:
   application:
     name: ms-solicitudes
   datasource:
-    # Persistencia H2
-    url: jdbc:h2:file:./data/solicitudes;DB_CLOSE_ON_EXIT=FALSE;AUTO_SERVER=TRUE
+    url: jdbc:h2:file:/app/data/solicitudes;AUTO_SERVER=TRUE;AUTO_SERVER_PORT=9093
     username: sa
     password:
+    driver-class-name: org.h2.Driver
   jpa:
     hibernate:
       ddl-auto: update
     show-sql: false
+    database-platform: org.hibernate.dialect.H2Dialect
   h2:
     console:
       enabled: true

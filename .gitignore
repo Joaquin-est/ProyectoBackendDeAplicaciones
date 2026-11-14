@@ -23,3 +23,5 @@ Thumbs.db
 application-local.yml
 
 # TEMPORAL: carpeta vieja hasta que todos migren
+
+repomix-output.xml

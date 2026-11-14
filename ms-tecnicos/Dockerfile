@@ -24,8 +24,13 @@ FROM eclipse-temurin:21-jre-alpine AS final
 
 WORKDIR /app
 
+# Crear grupo y usuario
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
+# Crear carpeta /app/data con permisos para appuser (CRÍTICO para H2 en archivo)
+RUN mkdir -p /app/data && chown -R appuser:appgroup /app/data
+
+# Copiar el jar
 COPY --from=build --chown=appuser:appgroup /app/ms-tecnicos/target/ms-tecnicos-1.0.0-SNAPSHOT.jar /app/app.jar
 
 USER appuser
