@@ -24,7 +24,13 @@ FROM eclipse-temurin:21-jre-alpine AS final
 
 WORKDIR /app
 
+# Creamos el grupo y usuario
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+
+# ==========================================
+# CAMBIO CLAVE: Creamos la carpeta data y le damos permisos al usuario
+# ==========================================
+RUN mkdir -p /app/data && chown -R appuser:appgroup /app/data
 
 COPY --from=build --chown=appuser:appgroup /app/ms-clientes/target/ms-clientes-1.0.0-SNAPSHOT.jar /app/app.jar
 

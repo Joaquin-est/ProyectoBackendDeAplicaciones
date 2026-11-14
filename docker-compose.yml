@@ -31,13 +31,11 @@ services:
     ports:
       - "41071:41071"
     environment:
-      # URLs internas de los microservicios (nombres de servicio en Docker)
+      # URLs internas de los microservicios
       - APP_GATEWAY_SOLICITUDES_URL=http://ms-solicitudes:41072
       - APP_GATEWAY_TECNICOS_URL=http://ms-tecnicos:41073
       - APP_GATEWAY_CLIENTES_URL=http://ms-clientes:41074
-      # Keycloak (puerto interno 8080, no 41090)
-      - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI=http://keycloak:8080/realms/patito
-      - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI=http://keycloak:8080/realms/patito/protocol/openid-connect/certs
+      # ELIMINADAS LAS VARIABLES DE SEGURIDAD PARA QUE USE EL application.yml
     depends_on:
       keycloak:
         condition: service_started
@@ -72,6 +70,8 @@ services:
     networks:
       - patito-net
     restart: unless-stopped
+    volumes:
+      - ./data/ms-solicitudes:/app/data
 
   # ==========================================
   # MS-TECNICOS
@@ -92,6 +92,8 @@ services:
     networks:
       - patito-net
     restart: unless-stopped
+    volumes:
+      - ./data/ms-tecnicos:/app/data
 
   # ==========================================
   # MS-CLIENTES
@@ -103,21 +105,25 @@ services:
     container_name: ms-clientes
     ports:
       - "41074:41074"
-    environment:
-      - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI=http://keycloak:8080/realms/patito
-      - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI=http://keycloak:8080/realms/patito/protocol/openid-connect/certs
+      # - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI=http://keycloak:8080/realms/patito
+      # - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI=http://keycloak:8080/realms/patito/protocol/openid-connect/certs
     depends_on:
       keycloak:
         condition: service_started
     networks:
       - patito-net
     restart: unless-stopped
+    volumes:
+      - ms-clientes-data:/app/data
 
 # ==========================================
 # VOLÚMENES Y REDES
 # ==========================================
 volumes:
   keycloak_data:
+  ms-clientes-data:
+  ms-solicitudes-data:
+  ms-tecnicos-data:
 
 networks:
   patito-net:

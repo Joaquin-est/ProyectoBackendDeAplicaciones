@@ -7,16 +7,18 @@ spring:
       resourceserver:
         jwt:
           issuer-uri: http://localhost:41090/realms/patito
-          jwk-set-uri: http://localhost:41090/realms/patito/protocol/openid-connect/certs
+          jwk-set-uri: http://keycloak:8080/realms/patito/protocol/openid-connect/certs
   application:
     name: ms-clientes
   datasource:
-    url: jdbc:h2:mem:clientes;DB_CLOSE_DELAY=-1
+    # Persistencia H2 y ruta donde se guarda
+    url: jdbc:h2:file:/app/data/clientes;AUTO_SERVER=TRUE
     username: sa
     password:
   jpa:
     hibernate:
-      ddl-auto: create-drop
+      # update para no borrar los datos al reiniciar
+      ddl-auto: update
     show-sql: false
   h2:
     console:

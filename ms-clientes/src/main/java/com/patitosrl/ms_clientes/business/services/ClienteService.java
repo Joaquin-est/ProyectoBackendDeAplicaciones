@@ -41,7 +41,7 @@ public class ClienteService {
             throw new ReglaDeNegocioException("Ya existe un cliente con DNI " + req.getDni());
         }
 
-        // 1. Crear en Keycloak
+        // 1. Crear en Keycloak (y obtener el UUID)
         String keycloakId = crearUsuarioEnKeycloak(req);
 
         // 2. Guardar en H2 con el UUID obtenido
@@ -59,33 +59,32 @@ public class ClienteService {
     private String crearUsuarioEnKeycloak(ClienteRequest req) {
         try {
             // A. Obtener Token de Admin (Client Credentials)
-            // CORRECCIÓN: Usamos un String en formato URL-encoded en lugar de un Map
             String tokenBody = "grant_type=client_credentials" +
                                "&client_id=patito-api" +
-                               "&client_secret=d8Lwbv44FWboVSKG3FDrVHsOisq8wULZ";
+                               "&client_secret=GqcfBK6kuQGuGr9WLQTdUXEv97cxNSmz";
 
             Map tokenResponse = keycloakWebClient.post()
                     .uri("/realms/patito/protocol/openid-connect/token")
                     .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                    .bodyValue(tokenBody) // <-- String, no Map
+                    .bodyValue(tokenBody)
                     .retrieve()
                     .bodyToMono(Map.class)
                     .block();
 
             String token = (String) tokenResponse.get("access_token");
 
-            // B. Crear el usuario
+            // B. Crear el usuario en Keycloak
             Map<String, Object> kcUser = new HashMap<>();
             kcUser.put("username", req.getDni()); 
-            kcUser.put("email", req.getDni() + "@patito.com"); 
+            kcUser.put("email", req.getEmail() != null ? req.getEmail() : req.getDni() + "@patito.com"); 
             kcUser.put("firstName", req.getNombre());
             kcUser.put("lastName", req.getApellido());
             kcUser.put("enabled", true);
             kcUser.put("emailVerified", true);
             
+            // Contraseña inicial (el DNI)
             kcUser.put("credentials", List.of(Map.of("type", "password", "value", req.getDni(), "temporary", false)));
 
-            // Ejecutamos el POST y capturamos el Header Location
             var response = keycloakWebClient.post()
                     .uri("/admin/realms/patito/users")
                     .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
@@ -97,7 +96,30 @@ public class ClienteService {
 
             if (response != null && response.getHeaders().getLocation() != null) {
                 String path = response.getHeaders().getLocation().getPath();
-                return path.substring(path.lastIndexOf('/') + 1);
+                String userId = path.substring(path.lastIndexOf('/') + 1);
+
+                // ========================================================
+                // C. ASIGNAR EL ROL "CLIENTE" AL USUARIO RECIÉN CREADO
+                // ========================================================
+                Map roleInfo = keycloakWebClient.get()
+                        .uri("/admin/realms/patito/roles/CLIENTE")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .retrieve()
+                        .bodyToMono(Map.class)
+                        .block();
+
+                if (roleInfo != null) {
+                    keycloakWebClient.post()
+                            .uri("/admin/realms/patito/users/" + userId + "/role-mappings/realm")
+                            .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .bodyValue(List.of(roleInfo))
+                            .retrieve()
+                            .toBodilessEntity()
+                            .block();
+                }
+
+                return userId;
             }
             throw new ReglaDeNegocioException("No se pudo obtener el ID de Keycloak");
 
@@ -117,39 +139,5 @@ public class ClienteService {
                         .latitud(0.0)
                         .longitud(0.0)
                         .build()));
-    }
-
-        @Transactional
-    public Cliente actualizar(String id, ClienteRequest req) {
-        Cliente c = obtener(id);
-
-        if (!c.getDni().equals(req.getDni()) && clientes.existsByDni(req.getDni())) {
-            throw new ReglaDeNegocioException("Ya existe un cliente con DNI " + req.getDni());
-        }
-
-        c.setNombre(req.getNombre());
-        c.setApellido(req.getApellido());
-        c.setDni(req.getDni());
-        c.setLatitud(req.getLatitud());
-        c.setLongitud(req.getLongitud());
-        return clientes.save(c);
-    }
-
-    @Transactional
-    public Cliente actualizarUbicacion(String id, Double latitud, Double longitud) {
-        Cliente c = obtener(id);
-        c.setLatitud(latitud);
-        c.setLongitud(longitud);
-        return clientes.save(c);
-    }
-
-    /**
-     * Borra el cliente de la base local. OJO: NO borra el usuario en Keycloak.
-     * Si querés borrado completo, hay que llamar al Admin API de Keycloak aquí.
-     */
-    @Transactional
-    public void eliminar(String id) {
-        Cliente c = obtener(id);
-        clientes.delete(c);
     }
 }

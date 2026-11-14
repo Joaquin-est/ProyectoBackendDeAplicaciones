@@ -13,17 +13,19 @@ public class GatewaySecurityConfig {
 
     @Bean
     public SecurityWebFilterChain springSecurityFilterChain(ServerHttpSecurity http) {
-        http.csrf(ServerHttpSecurity.CsrfSpec::disable)
+        http
+            .csrf(ServerHttpSecurity.CsrfSpec::disable)
             .authorizeExchange(exchanges -> exchanges
-                // Permitir el login sin token
-                .pathMatchers("/api/login/**").permitAll()
-                // Permitir Swagger si lo agregás después
-                .pathMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
-                // El resto requiere token
-                .pathMatchers("/api/**").permitAll()
+                // Rutas públicas (login y swagger) no requieren token
+                .pathMatchers("/api/login/**", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+                // Rutas de la API requieren autenticación (el token debe ser válido)
+                .pathMatchers("/api/**").authenticated()
+                // Cualquier otra ruta requiere autenticación
                 .anyExchange().authenticated()
             )
+            // Habilitamos la validación del JWT en el Gateway
             .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()));
+        
         return http.build();
     }
 }

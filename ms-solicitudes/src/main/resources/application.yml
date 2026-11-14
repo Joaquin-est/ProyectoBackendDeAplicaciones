@@ -11,12 +11,13 @@ spring:
   application:
     name: ms-solicitudes
   datasource:
-    url: jdbc:h2:mem:solicitudes;DB_CLOSE_DELAY=-1
+    # Persistencia H2
+    url: jdbc:h2:file:./data/solicitudes;DB_CLOSE_ON_EXIT=FALSE;AUTO_SERVER=TRUE
     username: sa
     password:
   jpa:
     hibernate:
-      ddl-auto: create-drop
+      ddl-auto: update
     show-sql: false
   h2:
     console:

@@ -11,8 +11,6 @@ import org.springframework.web.bind.annotation.*;
 import com.patitosrl.ms_solicitudes.business.models.HistorialEstado;
 import com.patitosrl.ms_solicitudes.business.models.Solicitud;
 import com.patitosrl.ms_solicitudes.business.services.SolicitudService;
-import com.patitosrl.ms_solicitudes.web.dtos.DerivarRequest;
-import com.patitosrl.ms_solicitudes.web.dtos.ReprogramarRequest;
 import com.patitosrl.ms_solicitudes.web.dtos.SolicitudRequest;
 import com.patitosrl.ms_solicitudes.web.dtos.SolicitudResponse;
 
@@ -35,7 +33,6 @@ public class SolicitudController {
     public ResponseEntity<SolicitudResponse> crear(@Valid @RequestBody SolicitudRequest req,
                                                    @AuthenticationPrincipal Jwt jwt) {
         String clienteKeycloakId = jwt.getSubject();
-        // El servicio ahora se encarga de buscar al técnico y ofertar automáticamente
         Solicitud s = service.crear(req, clienteKeycloakId);
         
         return ResponseEntity.created(URI.create("/api/solicitudes/" + s.getId()))
@@ -69,7 +66,6 @@ public class SolicitudController {
     public ResponseEntity<SolicitudResponse> obtener(@PathVariable Long id,
                                                      @AuthenticationPrincipal Jwt jwt) {
         Solicitud s = service.obtener(id);
-        // Validación de propiedad: Admin ve todo, Cliente solo lo suyo, Técnico solo lo suyo
         boolean esAdmin = jwt.getClaimAsStringList("realm_access.roles") != null
                 && jwt.getClaimAsStringList("realm_access.roles").contains("ADMIN");
         boolean esDueno = s.getClienteId().equals(jwt.getSubject());
@@ -104,41 +100,5 @@ public class SolicitudController {
     @Operation(summary = "Finalizar una solicitud")
     public ResponseEntity<SolicitudResponse> finalizar(@PathVariable Long id) {
         return ResponseEntity.ok(SolicitudResponse.desde(service.finalizar(id)));
-    }
-
-        @PutMapping("/{id}")
-    @Operation(summary = "Editar una solicitud en estado PENDIENTE u OFERTADA")
-    public ResponseEntity<SolicitudResponse> actualizar(@PathVariable Long id,
-                                                        @Valid @RequestBody SolicitudRequest req) {
-        return ResponseEntity.ok(SolicitudResponse.desde(service.actualizar(id, req)));
-    }
-
-    @PostMapping("/{id}/reprogramar")
-    @Operation(summary = "Reprogramar una solicitud")
-    public ResponseEntity<SolicitudResponse> reprogramar(@PathVariable Long id,
-                                                         @Valid @RequestBody ReprogramarRequest req) {
-        return ResponseEntity.ok(SolicitudResponse.desde(
-                service.reprogramar(id, req.getNuevaFecha(), req.getMotivo())));
-    }
-
-    @PostMapping("/{id}/derivar")
-    @Operation(summary = "Derivar una solicitud a otro técnico")
-    public ResponseEntity<SolicitudResponse> derivar(@PathVariable Long id,
-                                                     @Valid @RequestBody DerivarRequest req) {
-        return ResponseEntity.ok(SolicitudResponse.desde(
-                service.derivar(id, req.getTecnicoDestinoId(), req.getMotivo())));
-    }
-
-    @PostMapping("/{id}/iniciar")
-    @Operation(summary = "Iniciar el servicio sin pasar por aprobación de presupuesto")
-    public ResponseEntity<SolicitudResponse> iniciar(@PathVariable Long id) {
-        return ResponseEntity.ok(SolicitudResponse.desde(service.iniciar(id)));
-    }
-
-    @DeleteMapping("/{id}")
-    @Operation(summary = "Eliminar una solicitud PENDIENTE o CANCELADA")
-    public ResponseEntity<Void> eliminar(@PathVariable Long id) {
-        service.eliminar(id);
-        return ResponseEntity.noContent().build();
     }
 }

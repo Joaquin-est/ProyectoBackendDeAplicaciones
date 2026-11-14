@@ -1,20 +1,34 @@
-server:
-  port: 41071
-
 spring:
+  application:
+    name: api-gateway
   security:
     oauth2:
       resourceserver:
         jwt:
-          # Usamos variables de entorno con valores por defecto para Docker
-          issuer-uri: ${SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI:http://keycloak:8080/realms/patito}
-          jwk-set-uri: ${SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI:http://keycloak:8080/realms/patito/protocol/openid-connect/certs}
-  application:
-    name: api-gateway
+          issuer-uri: http://localhost:41090/realms/patito
+          jwk-set-uri: http://keycloak:8080/realms/patito/protocol/openid-connect/certs
 
-app:
-  gateway:
-    # Nombres de los servicios en la red de Docker
-    solicitudes-url: ${APP_GATEWAY_SOLICITUDES_URL:http://ms-solicitudes:41072}
-    tecnicos-url: ${APP_GATEWAY_TECNICOS_URL:http://ms-tecnicos:41073}
-    clientes-url: ${APP_GATEWAY_CLIENTES_URL:http://ms-clientes:41074}
+  cloud:
+    gateway:
+      routes:
+        - id: ms-clientes
+          uri: http://ms-clientes:41074
+          predicates:
+            - Path=/api/clientes/**
+        - id: ms-tecnicos
+          uri: http://ms-tecnicos:41073
+          predicates:
+            - Path=/api/tecnicos/**
+        - id: ms-solicitudes
+          uri: http://ms-solicitudes:41072
+          predicates:
+            - Path=/api/solicitudes/**
+
+server:
+  port: 41071
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  api-docs:
+    path: /v3/api-docs

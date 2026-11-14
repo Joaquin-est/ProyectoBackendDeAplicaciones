@@ -1,5 +1,6 @@
 package com.patitosrl.ms_clientes.web.dtos;
 
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
@@ -15,6 +16,10 @@ public class ClienteRequest {
 
     @NotBlank(message = "El DNI es obligatorio")
     private String dni;
+
+    @NotBlank(message = "El email es obligatorio")
+    @Email(message = "El formato del email no es válido")
+    private String email;
 
     @NotNull(message = "La latitud es obligatoria")
     private Double latitud;

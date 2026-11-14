@@ -5,7 +5,6 @@ import lombok.Data;
 
 @Data
 public class CoordenadasRequest {
-
     @NotNull(message = "La latitud es obligatoria")
     private Double latitud;
 

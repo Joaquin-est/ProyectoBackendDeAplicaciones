@@ -9,14 +9,10 @@ import com.patitosrl.ms_solicitudes.business.models.TipoServicio;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 @Data
 public class SolicitudRequest {
-
-    @NotNull(message = "El ID del cliente es obligatorio")
-    private Long clienteId;
 
     @NotBlank(message = "El domicilio es obligatorio")
     private String domicilio;
@@ -31,11 +27,10 @@ public class SolicitudRequest {
     private String modelo;
 
     @NotBlank(message = "La descripción es obligatoria")
-    @Size(max = 500)
     private String descripcion;
 
     @NotNull(message = "La especialidad es obligatoria")
-    private Long especialidadId; // <-- CLAVE
+    private Long especialidadId;
 
     @NotNull(message = "La prioridad es obligatoria")
     private Prioridad prioridad;

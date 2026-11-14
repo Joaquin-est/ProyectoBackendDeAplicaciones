@@ -11,12 +11,12 @@ spring:
   application:
     name: ms-tecnicos
   datasource:
-    url: jdbc:h2:mem:tecnicos;DB_CLOSE_DELAY=-1
+    url: jdbc:h2:file:./data/tecnicos;DB_CLOSE_ON_EXIT=FALSE;AUTO_SERVER=TRUE
     username: sa
     password:
   jpa:
     hibernate:
-      ddl-auto: create-drop
+      ddl-auto: update
     show-sql: false
   h2:
     console:
