@@ -41,8 +41,8 @@ services:
         condition: service_started
       ms-solicitudes:
         condition: service_started
-      ms-tecnicos:
-        condition: service_started
+      # ms-tecnicos:
+      #  condition: service_started
       ms-clientes:
         condition: service_started
     networks:
