@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.web.reactive.function.client.WebClient;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.when;
@@ -22,6 +23,7 @@ class TecnicoServiceTest {
     @Mock private TecnicoRepository tecnicos;
     @Mock private CertificacionRepository certificaciones;
     @Mock private ZonaCoberturaRepository zonas;
+    @Mock private WebClient keycloakWebClient;
 
     private TecnicoService service;
 
@@ -30,9 +32,8 @@ class TecnicoServiceTest {
 
     @BeforeEach
     void setUp() {
-        // Instanciamos el servicio con los 3 mocks
-        // (el radio de candidatos lo inyecta @Value, pero como es un test unitario, no se inyecta)
-        service = new TecnicoService(tecnicos, certificaciones, zonas);
+        // Instanciamos el servicio con los 4 mocks
+        service = new TecnicoService(tecnicos, certificaciones, zonas, keycloakWebClient); // <-- AGREGAR keycloakWebClient
 
         Certificacion redes = new Certificacion(1L, "Redes");
 

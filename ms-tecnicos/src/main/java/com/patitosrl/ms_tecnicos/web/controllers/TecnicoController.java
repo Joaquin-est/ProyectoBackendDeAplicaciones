@@ -47,10 +47,9 @@ public class TecnicoController {
     }
 
     @PostMapping
-    @Operation(summary = "Registrar un nuevo técnico (desde Keycloak)")
-    public ResponseEntity<TecnicoResponse> crear(@Valid @RequestBody TecnicoRequest req, @AuthenticationPrincipal Jwt jwt) {
-        String keycloakId = jwt.getSubject();
-        Tecnico t = service.crear(req, keycloakId);
+    @Operation(summary = "Registrar un nuevo técnico (crea en Keycloak + H2)")
+    public ResponseEntity<TecnicoResponse> crear(@Valid @RequestBody TecnicoRequest req) {
+        Tecnico t = service.crear(req);
         return ResponseEntity.ok(TecnicoResponse.desde(t));
     }
 

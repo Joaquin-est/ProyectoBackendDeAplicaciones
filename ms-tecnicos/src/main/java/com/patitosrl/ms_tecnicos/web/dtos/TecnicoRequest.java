@@ -2,6 +2,7 @@ package com.patitosrl.ms_tecnicos.web.dtos;
 
 import java.util.List;
 
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
@@ -18,18 +19,17 @@ public class TecnicoRequest {
     @NotBlank(message = "El DNI es obligatorio")
     private String dni;
 
+    @NotBlank(message = "El email es obligatorio")
+    @Email(message = "El formato del email no es válido")
+    private String email;
+
     @NotNull(message = "La latitud es obligatoria")
     private Double latitud;
 
     @NotNull(message = "La longitud es obligatoria")
     private Double longitud;
 
-    /** Si no se envía, el técnico se registra como disponible. */
     private Boolean disponible;
-
-    /** IDs de certificaciones existentes. */
     private List<Long> certificacionIds;
-
-    /** IDs de zonas de cobertura existentes. */
     private List<Long> zonaCoberturaIds;
 }

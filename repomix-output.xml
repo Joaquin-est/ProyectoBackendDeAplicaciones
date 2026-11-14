@@ -275,221 +275,6 @@ tecnicos.http
 <files>
 This section contains the contents of the repository's files.
 
-<file path="api-gateway/src/main/java/com/patitosrl/gateway/dto/AuthDtos.java">
-package com.patitosrl.gateway.dto;
-
-import com.fasterxml.jackson.annotation.JsonProperty;
-
-public class AuthDtos {
-
-    public record LoginRequest(String username, String password) { }
-
-    public record RefreshRequest(String refreshToken) { }
-
-    public record LogoutRequest(String refreshToken) { }
-
-    public record TokenResponse(
-            @JsonProperty("access_token") String accessToken,
-            @JsonProperty("refresh_token") String refreshToken,
-            @JsonProperty("expires_in") Integer expiresIn,
-            @JsonProperty("refresh_expires_in") Integer refreshExpiresIn,
-            @JsonProperty("token_type") String tokenType,
-            String scope
-    ) { }
-}
-</file>
-
-<file path="ms-clientes/src/main/java/com/patitosrl/ms_clientes/web/dtos/CoordenadasRequest.java">
-package com.patitosrl.ms_clientes.web.dtos;
-
-import jakarta.validation.constraints.NotNull;
-import lombok.Data;
-
-@Data
-public class CoordenadasRequest {
-
-    @NotNull(message = "La latitud es obligatoria")
-    private Double latitud;
-
-    @NotNull(message = "La longitud es obligatoria")
-    private Double longitud;
-}
-</file>
-
-<file path="ms-solicitudes/src/main/java/com/patitosrl/ms_solicitudes/web/dtos/CandidatoResponse.java">
-package com.patitosrl.ms_solicitudes.web.dtos;
-
-public record CandidatoResponse(String tecnicoId, String nombre, Double distanciaKm) { }
-</file>
-
-<file path="ms-solicitudes/src/main/java/com/patitosrl/ms_solicitudes/web/dtos/DerivarRequest.java">
-package com.patitosrl.ms_solicitudes.web.dtos;
-
-import jakarta.validation.constraints.NotBlank;
-import lombok.Data;
-
-@Data
-public class DerivarRequest {
-
-    @NotBlank(message = "El ID del técnico destino es obligatorio")
-    private String tecnicoDestinoId;
-
-    private String motivo;
-}
-</file>
-
-<file path="ms-solicitudes/src/main/java/com/patitosrl/ms_solicitudes/web/dtos/ReprogramarRequest.java">
-package com.patitosrl.ms_solicitudes.web.dtos;
-
-import java.time.LocalDateTime;
-
-import jakarta.validation.constraints.NotNull;
-import lombok.Data;
-
-@Data
-public class ReprogramarRequest {
-
-    @NotNull(message = "La nueva fecha y hora es obligatoria")
-    private LocalDateTime nuevaFecha;
-
-    private String motivo;
-}
-</file>
-
-<file path="ms-tecnicos/src/main/java/com/patitosrl/ms_tecnicos/web/controllers/CatalogoCertificacionController.java">
-package com.patitosrl.ms_tecnicos.web.controllers;
-
-import java.util.List;
-
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
-import com.patitosrl.ms_tecnicos.business.exceptions.ReglaDeNegocioException;
-import com.patitosrl.ms_tecnicos.business.models.Certificacion;
-import com.patitosrl.ms_tecnicos.infrastructure.repositories.CertificacionRepository;
-import com.patitosrl.ms_tecnicos.infrastructure.repositories.TecnicoRepository;
-import com.patitosrl.ms_tecnicos.web.dtos.CatalogoRequest;
-import com.patitosrl.ms_tecnicos.web.dtos.CatalogoResponse;
-
-import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
-
-@RestController
-@RequestMapping("/api/tecnicos/certificaciones")
-@RequiredArgsConstructor
-public class CatalogoCertificacionController {
-
-    private final CertificacionRepository certificaciones;
-    private final TecnicoRepository tecnicos;
-
-    @GetMapping
-    public ResponseEntity<List<CatalogoResponse>> listar() {
-        return ResponseEntity.ok(certificaciones.findAll().stream()
-                .map(c -> new CatalogoResponse(c.getId(), c.getNombre()))
-                .toList());
-    }
-
-    @PostMapping
-    public ResponseEntity<CatalogoResponse> crear(@Valid @RequestBody CatalogoRequest req) {
-        Certificacion c = certificaciones.save(new Certificacion(null, req.getNombre()));
-        return ResponseEntity.ok(new CatalogoResponse(c.getId(), c.getNombre()));
-    }
-
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> eliminar(@PathVariable Long id) {
-        Certificacion c = certificaciones.findById(id)
-                .orElseThrow(() -> new ReglaDeNegocioException("Certificación inexistente: " + id));
-
-        boolean enUso = tecnicos.findAll().stream()
-                .anyMatch(t -> t.getCertificaciones() != null &&
-                        t.getCertificaciones().stream().anyMatch(cc -> cc.getId().equals(id)));
-        if (enUso) {
-            throw new ReglaDeNegocioException("La certificación está asignada a técnicos activos");
-        }
-
-        certificaciones.delete(c);
-        return ResponseEntity.noContent().build();
-    }
-}
-</file>
-
-<file path="ms-tecnicos/src/main/java/com/patitosrl/ms_tecnicos/web/controllers/CatalogoZonaController.java">
-package com.patitosrl.ms_tecnicos.web.controllers;
-
-import java.util.List;
-
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
-import com.patitosrl.ms_tecnicos.business.exceptions.ReglaDeNegocioException;
-import com.patitosrl.ms_tecnicos.business.models.ZonaCobertura;
-import com.patitosrl.ms_tecnicos.infrastructure.repositories.TecnicoRepository;
-import com.patitosrl.ms_tecnicos.infrastructure.repositories.ZonaCoberturaRepository;
-import com.patitosrl.ms_tecnicos.web.dtos.CatalogoRequest;
-import com.patitosrl.ms_tecnicos.web.dtos.CatalogoResponse;
-
-import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
-
-@RestController
-@RequestMapping("/api/tecnicos/zonas")
-@RequiredArgsConstructor
-public class CatalogoZonaController {
-
-    private final ZonaCoberturaRepository zonas;
-    private final TecnicoRepository tecnicos;
-
-    @GetMapping
-    public ResponseEntity<List<CatalogoResponse>> listar() {
-        return ResponseEntity.ok(zonas.findAll().stream()
-                .map(z -> new CatalogoResponse(z.getId(), z.getNombre()))
-                .toList());
-    }
-
-    @PostMapping
-    public ResponseEntity<CatalogoResponse> crear(@Valid @RequestBody CatalogoRequest req) {
-        ZonaCobertura z = zonas.save(new ZonaCobertura(null, req.getNombre()));
-        return ResponseEntity.ok(new CatalogoResponse(z.getId(), z.getNombre()));
-    }
-
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> eliminar(@PathVariable Long id) {
-        ZonaCobertura z = zonas.findById(id)
-                .orElseThrow(() -> new ReglaDeNegocioException("Zona inexistente: " + id));
-
-        boolean enUso = tecnicos.findAll().stream()
-                .anyMatch(t -> t.getZonasCobertura() != null &&
-                        t.getZonasCobertura().stream().anyMatch(zz -> zz.getId().equals(id)));
-        if (enUso) {
-            throw new ReglaDeNegocioException("La zona está asignada a técnicos activos");
-        }
-
-        zonas.delete(z);
-        return ResponseEntity.noContent().build();
-    }
-}
-</file>
-
-<file path="ms-tecnicos/src/main/java/com/patitosrl/ms_tecnicos/web/dtos/CatalogoRequest.java">
-package com.patitosrl.ms_tecnicos.web.dtos;
-
-import jakarta.validation.constraints.NotBlank;
-import lombok.Data;
-
-@Data
-public class CatalogoRequest {
-
-    @NotBlank(message = "El nombre es obligatorio")
-    private String nombre;
-}
-</file>
-
-<file path="ms-tecnicos/src/main/java/com/patitosrl/ms_tecnicos/web/dtos/CatalogoResponse.java">
-package com.patitosrl.ms_tecnicos.web.dtos;
-
-public record CatalogoResponse(Long id, String nombre) { }
-</file>
-
 <file path=".github/modernize/java-upgrade/hooks/scripts/recordToolUse.ps1">
 # Records run_in_terminal and appmod-* tool calls as JSONL for the extension to process.
 
@@ -604,157 +389,6 @@ public class GatewayConfig {
                         .filters(f -> f.addResponseHeader("X-Gateway", "tecnica-patito"))
                         .uri(urlClientes))
                 .build();
-    }
-}
-</file>
-
-<file path="api-gateway/src/main/java/com/patitosrl/gateway/controller/AuthController.java">
-package com.patitosrl.gateway.controller;
-
-import org.springframework.http.MediaType;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.web.client.RestClient;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
-
-@RestController
-public class AuthController {
-
-    // URL INTERNA DE DOCKER PARA KEYCLOAK
-    private static final String KEYCLOAK_TOKEN_URL = "http://keycloak:8080/realms/patito/protocol/openid-connect/token";
-    
-    // URL DE REDIRECCIÓN (apunta al puerto del Gateway)
-    private static final String REDIRECT_URI = "http://localhost:41071/api/login/oauth2/code/keycloak";
-    
-    private static final String CLIENT_ID = "patito-api";
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-
-    @GetMapping("/api/login/oauth2/code/keycloak")
-    public String intercambiarCode(@RequestParam String code) {
-        RestClient restClient = RestClient.create();
-
-        System.out.println("===============================================");
-        System.out.println("CALLBACK DE KEYCLOAK RECIBIDO");
-        System.out.println("Authorization Code: " + code);
-        System.out.println("===============================================");
-
-        // 1. Construir el Form Data
-        String formData = "grant_type=authorization_code" +
-                "&code=" + URLEncoder.encode(code, StandardCharsets.UTF_8) +
-                "&client_id=" + CLIENT_ID +
-                "&redirect_uri=" + URLEncoder.encode(REDIRECT_URI, StandardCharsets.UTF_8);
-
-        // 2. Intercambiar CODE por TOKEN
-        String tokenResponse;
-        try {
-            tokenResponse = restClient.post()
-                    .uri(KEYCLOAK_TOKEN_URL)
-                    .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                    .body(formData)
-                    .retrieve()
-                    .body(String.class);
-        } catch (Exception e) {
-            System.err.println("ERROR al pedir token a Keycloak: " + e.getMessage());
-            return "<h2>Error de autenticación</h2><p>No se pudo obtener el token.</p>";
-        }
-
-        // 3. Parsear el token y mostrar la información al usuario
-        try {
-            JsonNode tokenJson = OBJECT_MAPPER.readTree(tokenResponse);
-            String accessToken = tokenJson.get("access_token").asText();
-
-            // Devolvemos una página HTML simple con el token (para pruebas)
-            return """
-                    <html>
-                    <body>
-                        <h2>Login Exitoso</h2>
-                        <p>Token JWT obtenido correctamente.</p>
-                        <p><b>Copia este token para tus pruebas en Swagger o Postman:</b></p>
-                        <textarea rows="10" cols="80" readonly>""" + accessToken + """
-                        </textarea>
-                    </body>
-                    </html>
-                    """;
-        } catch (Exception e) {
-            return "<h2>Error procesando el token</h2><p>Revisa la consola para más detalles.</p>";
-        }
-    }
-
-    private static final String CLIENT_SECRET = "d8Lwbv44FWboVSKG3FDrVHsOisq8wULZ";
-
-    @PostMapping("/api/login")
-    public org.springframework.http.ResponseEntity<com.patitosrl.gateway.dto.AuthDtos.TokenResponse> login(
-            @RequestBody com.patitosrl.gateway.dto.AuthDtos.LoginRequest req) {
-        RestClient restClient = RestClient.create();
-
-        String formData = "grant_type=password" +
-                "&client_id=" + CLIENT_ID +
-                "&client_secret=" + CLIENT_SECRET +
-                "&username=" + URLEncoder.encode(req.username(), StandardCharsets.UTF_8) +
-                "&password=" + URLEncoder.encode(req.password(), StandardCharsets.UTF_8);
-
-        try {
-            String body = restClient.post()
-                    .uri(KEYCLOAK_TOKEN_URL)
-                    .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                    .body(formData)
-                    .retrieve()
-                    .body(String.class);
-
-            var token = OBJECT_MAPPER.readValue(body, com.patitosrl.gateway.dto.AuthDtos.TokenResponse.class);
-            return org.springframework.http.ResponseEntity.ok(token);
-        } catch (Exception e) {
-            throw new org.springframework.web.server.ResponseStatusException(
-                    org.springframework.http.HttpStatus.UNAUTHORIZED, "Credenciales inválidas o Keycloak no disponible");
-        }
-    }
-
-    @PostMapping("/api/refresh")
-    public org.springframework.http.ResponseEntity<com.patitosrl.gateway.dto.AuthDtos.TokenResponse> refresh(
-            @RequestBody com.patitosrl.gateway.dto.AuthDtos.RefreshRequest req) {
-        RestClient restClient = RestClient.create();
-
-        String formData = "grant_type=refresh_token" +
-                "&client_id=" + CLIENT_ID +
-                "&client_secret=" + CLIENT_SECRET +
-                "&refresh_token=" + URLEncoder.encode(req.refreshToken(), StandardCharsets.UTF_8);
-
-        try {
-            String body = restClient.post()
-                    .uri(KEYCLOAK_TOKEN_URL)
-                    .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                    .body(formData)
-                    .retrieve()
-                    .body(String.class);
-
-            var token = OBJECT_MAPPER.readValue(body, com.patitosrl.gateway.dto.AuthDtos.TokenResponse.class);
-            return org.springframework.http.ResponseEntity.ok(token);
-        } catch (Exception e) {
-            throw new org.springframework.web.server.ResponseStatusException(
-                    org.springframework.http.HttpStatus.UNAUTHORIZED, "Refresh token inválido o expirado");
-        }
-    }
-
-    @PostMapping("/api/logout")
-    public org.springframework.http.ResponseEntity<Void> logout(
-            @RequestBody com.patitosrl.gateway.dto.AuthDtos.LogoutRequest req) {
-        RestClient restClient = RestClient.create();
-
-        String formData = "client_id=" + CLIENT_ID +
-                "&client_secret=" + CLIENT_SECRET +
-                "&refresh_token=" + URLEncoder.encode(req.refreshToken(), StandardCharsets.UTF_8);
-
-        try {
-            restClient.post()
-                    .uri("http://keycloak:8080/realms/patito/protocol/openid-connect/logout")
-                    .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                    .body(formData)
-                    .retrieve()
-                    .toBodilessEntity();
-        } catch (Exception ignored) { }
-        return org.springframework.http.ResponseEntity.noContent().build();
     }
 }
 </file>
@@ -984,33 +618,6 @@ public class KeycloakConfig {
                 .baseUrl("http://keycloak:8080") // Nombre del servicio en Docker
                 .build();
     }
-}
-</file>
-
-<file path="ms-clientes/src/main/java/com/patitosrl/ms_clientes/web/dtos/ClienteRequest.java">
-package com.patitosrl.ms_clientes.web.dtos;
-
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import lombok.Data;
-
-@Data
-public class ClienteRequest {
-
-    @NotBlank(message = "El nombre es obligatorio")
-    private String nombre;
-
-    @NotBlank(message = "El apellido es obligatorio")
-    private String apellido;
-
-    @NotBlank(message = "El DNI es obligatorio")
-    private String dni;
-
-    @NotNull(message = "La latitud es obligatoria")
-    private Double latitud;
-
-    @NotNull(message = "La longitud es obligatoria")
-    private Double longitud;
 }
 </file>
 
@@ -1672,6 +1279,46 @@ public interface HistorialEstadoRepository extends JpaRepository<HistorialEstado
 }
 </file>
 
+<file path="ms-solicitudes/src/main/java/com/patitosrl/ms_solicitudes/web/dtos/CandidatoResponse.java">
+package com.patitosrl.ms_solicitudes.web.dtos;
+
+public record CandidatoResponse(String tecnicoId, String nombre, Double distanciaKm) { }
+</file>
+
+<file path="ms-solicitudes/src/main/java/com/patitosrl/ms_solicitudes/web/dtos/DerivarRequest.java">
+package com.patitosrl.ms_solicitudes.web.dtos;
+
+import jakarta.validation.constraints.NotBlank;
+import lombok.Data;
+
+@Data
+public class DerivarRequest {
+
+    @NotBlank(message = "El ID del técnico destino es obligatorio")
+    private String tecnicoDestinoId;
+
+    private String motivo;
+}
+</file>
+
+<file path="ms-solicitudes/src/main/java/com/patitosrl/ms_solicitudes/web/dtos/ReprogramarRequest.java">
+package com.patitosrl.ms_solicitudes.web.dtos;
+
+import java.time.LocalDateTime;
+
+import jakarta.validation.constraints.NotNull;
+import lombok.Data;
+
+@Data
+public class ReprogramarRequest {
+
+    @NotNull(message = "La nueva fecha y hora es obligatoria")
+    private LocalDateTime nuevaFecha;
+
+    private String motivo;
+}
+</file>
+
 <file path="ms-solicitudes/src/main/java/com/patitosrl/ms_solicitudes/web/exceptions/GlobalExceptionHandler.java">
 package com.patitosrl.ms_solicitudes.web.exceptions;
 
@@ -1946,6 +1593,140 @@ public interface ZonaCoberturaRepository extends JpaRepository<ZonaCobertura, Lo
 }
 </file>
 
+<file path="ms-tecnicos/src/main/java/com/patitosrl/ms_tecnicos/web/controllers/CatalogoCertificacionController.java">
+package com.patitosrl.ms_tecnicos.web.controllers;
+
+import java.util.List;
+
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import com.patitosrl.ms_tecnicos.business.exceptions.ReglaDeNegocioException;
+import com.patitosrl.ms_tecnicos.business.models.Certificacion;
+import com.patitosrl.ms_tecnicos.infrastructure.repositories.CertificacionRepository;
+import com.patitosrl.ms_tecnicos.infrastructure.repositories.TecnicoRepository;
+import com.patitosrl.ms_tecnicos.web.dtos.CatalogoRequest;
+import com.patitosrl.ms_tecnicos.web.dtos.CatalogoResponse;
+
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+
+@RestController
+@RequestMapping("/api/tecnicos/certificaciones")
+@RequiredArgsConstructor
+public class CatalogoCertificacionController {
+
+    private final CertificacionRepository certificaciones;
+    private final TecnicoRepository tecnicos;
+
+    @GetMapping
+    public ResponseEntity<List<CatalogoResponse>> listar() {
+        return ResponseEntity.ok(certificaciones.findAll().stream()
+                .map(c -> new CatalogoResponse(c.getId(), c.getNombre()))
+                .toList());
+    }
+
+    @PostMapping
+    public ResponseEntity<CatalogoResponse> crear(@Valid @RequestBody CatalogoRequest req) {
+        Certificacion c = certificaciones.save(new Certificacion(null, req.getNombre()));
+        return ResponseEntity.ok(new CatalogoResponse(c.getId(), c.getNombre()));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> eliminar(@PathVariable Long id) {
+        Certificacion c = certificaciones.findById(id)
+                .orElseThrow(() -> new ReglaDeNegocioException("Certificación inexistente: " + id));
+
+        boolean enUso = tecnicos.findAll().stream()
+                .anyMatch(t -> t.getCertificaciones() != null &&
+                        t.getCertificaciones().stream().anyMatch(cc -> cc.getId().equals(id)));
+        if (enUso) {
+            throw new ReglaDeNegocioException("La certificación está asignada a técnicos activos");
+        }
+
+        certificaciones.delete(c);
+        return ResponseEntity.noContent().build();
+    }
+}
+</file>
+
+<file path="ms-tecnicos/src/main/java/com/patitosrl/ms_tecnicos/web/controllers/CatalogoZonaController.java">
+package com.patitosrl.ms_tecnicos.web.controllers;
+
+import java.util.List;
+
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import com.patitosrl.ms_tecnicos.business.exceptions.ReglaDeNegocioException;
+import com.patitosrl.ms_tecnicos.business.models.ZonaCobertura;
+import com.patitosrl.ms_tecnicos.infrastructure.repositories.TecnicoRepository;
+import com.patitosrl.ms_tecnicos.infrastructure.repositories.ZonaCoberturaRepository;
+import com.patitosrl.ms_tecnicos.web.dtos.CatalogoRequest;
+import com.patitosrl.ms_tecnicos.web.dtos.CatalogoResponse;
+
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+
+@RestController
+@RequestMapping("/api/tecnicos/zonas")
+@RequiredArgsConstructor
+public class CatalogoZonaController {
+
+    private final ZonaCoberturaRepository zonas;
+    private final TecnicoRepository tecnicos;
+
+    @GetMapping
+    public ResponseEntity<List<CatalogoResponse>> listar() {
+        return ResponseEntity.ok(zonas.findAll().stream()
+                .map(z -> new CatalogoResponse(z.getId(), z.getNombre()))
+                .toList());
+    }
+
+    @PostMapping
+    public ResponseEntity<CatalogoResponse> crear(@Valid @RequestBody CatalogoRequest req) {
+        ZonaCobertura z = zonas.save(new ZonaCobertura(null, req.getNombre()));
+        return ResponseEntity.ok(new CatalogoResponse(z.getId(), z.getNombre()));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> eliminar(@PathVariable Long id) {
+        ZonaCobertura z = zonas.findById(id)
+                .orElseThrow(() -> new ReglaDeNegocioException("Zona inexistente: " + id));
+
+        boolean enUso = tecnicos.findAll().stream()
+                .anyMatch(t -> t.getZonasCobertura() != null &&
+                        t.getZonasCobertura().stream().anyMatch(zz -> zz.getId().equals(id)));
+        if (enUso) {
+            throw new ReglaDeNegocioException("La zona está asignada a técnicos activos");
+        }
+
+        zonas.delete(z);
+        return ResponseEntity.noContent().build();
+    }
+}
+</file>
+
+<file path="ms-tecnicos/src/main/java/com/patitosrl/ms_tecnicos/web/dtos/CatalogoRequest.java">
+package com.patitosrl.ms_tecnicos.web.dtos;
+
+import jakarta.validation.constraints.NotBlank;
+import lombok.Data;
+
+@Data
+public class CatalogoRequest {
+
+    @NotBlank(message = "El nombre es obligatorio")
+    private String nombre;
+}
+</file>
+
+<file path="ms-tecnicos/src/main/java/com/patitosrl/ms_tecnicos/web/dtos/CatalogoResponse.java">
+package com.patitosrl.ms_tecnicos.web.dtos;
+
+public record CatalogoResponse(Long id, String nombre) { }
+</file>
+
 <file path="ms-tecnicos/src/main/java/com/patitosrl/ms_tecnicos/web/dtos/TecnicoRequest.java">
 package com.patitosrl.ms_tecnicos.web.dtos;
 
@@ -2074,411 +1855,6 @@ public class TecnicosApplication {
 **/mvnw.cmd
 </file>
 
-<file path=".gitignore">
-# Maven
-target/
-!.mvn/wrapper/maven-wrapper.jar
-
-# IDE
-.idea/
-*.iml
-.vscode/
-*.iws
-*.ipr
-*.classpath
-*.project
-.settings/
-
-# Sistema operativo
-.DS_Store
-Thumbs.db
-
-# Logs
-*.log
-
-# Configuración local
-application-local.yml
-
-# TEMPORAL: carpeta vieja hasta que todos migren
-</file>
-
-<file path="backend.postman_collection.json">
-{
-  "info": {
-    "_postman_id": "d647933b-776c-4ed9-9c43-85bc96c075d5",
-    "name": "backend",
-    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "_exporter_id": "54931068"
-  },
-  "item": [
-    {
-      "name": "Obtenertoken",
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "var jsonData = pm.response.json();\n\nif (jsonData.access_token) {\n    pm.environment.set(\"token\", jsonData.access_token);\n    console.log(\"Token guardado automáticamente:\", jsonData.access_token.substring(0, 20) + \"...\");\n} else {\n    console.error(\"No se pudo obtener el token. Respuesta:\", jsonData);\n}"
-            ]
-          }
-        }
-      ],
-      "request": {
-        "method": "POST",
-        "header": [],
-        "body": {
-          "mode": "urlencoded",
-          "urlencoded": [
-            {
-              "key": "client_id",
-              "value": "{{client_id}}"
-            },
-            {
-              "key": "client_secret",
-              "value": "{{client_secret}}"
-            },
-            {
-              "key": "grant_type",
-              "value": "password"
-            },
-            {
-              "key": "username",
-              "value": "cliente1"
-            },
-            {
-              "key": "password",
-              "value": "1234"
-            }
-          ]
-        },
-        "url": {
-          "raw": "{{keycloak_url}}",
-          "host": [
-            "{{keycloak_url}}"
-          ]
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "Lista de Técnicos",
-      "request": {
-        "method": "GET",
-        "header": [
-          {
-            "key": "Authorization",
-            "value": "Bearer {{token}}"
-          }
-        ],
-        "url": {
-          "raw": "{{gateway_url}}/api/tecnicos",
-          "host": [
-            "{{gateway_url}}"
-          ],
-          "path": [
-            "api",
-            "tecnicos"
-          ]
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "Lista de clientes",
-      "request": {
-        "method": "GET",
-        "header": [
-          {
-            "key": "Authorization",
-            "value": "Bearer {{token}}"
-          }
-        ],
-        "url": {
-          "raw": "{{gateway_url}}/api/clientes?Authorization=Bearer {{token}}",
-          "host": [
-            "{{gateway_url}}"
-          ],
-          "path": [
-            "api",
-            "clientes"
-          ],
-          "query": [
-            {
-              "key": "Authorization",
-              "value": "Bearer {{token}}"
-            }
-          ]
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "Crear Cliente",
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Authorization",
-            "value": "Bearer {{token}}"
-          },
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"nombre\": \"Carlos\",\n  \"apellido\": \"Garcia\",\n  \"dni\": \"5235325325\",\n  \"latitud\": -31.420,\n  \"longitud\": -64.188\n}",
-          "options": {
-            "raw": {
-              "language": "json"
-            }
-          }
-        },
-        "url": {
-          "raw": "{{gateway_url}}/api/clientes?Authorization=Bearer {{token}}",
-          "host": [
-            "{{gateway_url}}"
-          ],
-          "path": [
-            "api",
-            "clientes"
-          ],
-          "query": [
-            {
-              "key": "Authorization",
-              "value": "Bearer {{token}}"
-            }
-          ]
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "acceso rechazado",
-      "request": {
-        "method": "GET",
-        "header": [],
-        "url": {
-          "raw": "{{gateway_url}}/api/tecnicos",
-          "host": [
-            "{{gateway_url}}"
-          ],
-          "path": [
-            "api",
-            "tecnicos"
-          ]
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "Crear solicitud",
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Authorization",
-            "value": "Bearer {{token}}"
-          },
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"clienteId\": 4,\n  \"domicilio\": \"Av. Colón 1234, Córdoba\",\n  \"tiposServicio\": [\"REPARACION\"],\n  \"marca\": \"Apple\",\n  \"modelo\": \"MacBook Pro 2020\",\n  \"descripcion\": \"La pantalla no enciende y no da imagen\",\n  \"especialidadId\": 3,\n  \"prioridad\": \"NORMAL\",\n  \"fechaHoraProgramada\": \"2026-11-10T10:00:00\",\n  \"esFeriado\": false\n}",
-          "options": {
-            "raw": {
-              "language": "json"
-            }
-          }
-        },
-        "url": {
-          "raw": "{{gateway_url}}/api/solicitudes",
-          "host": [
-            "{{gateway_url}}"
-          ],
-          "path": [
-            "api",
-            "solicitudes"
-          ]
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "Consultar historial por id",
-      "request": {
-        "method": "GET",
-        "header": [
-          {
-            "key": "Authorization",
-            "value": "Bearer {{token}}"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "",
-          "options": {
-            "raw": {
-              "language": "json"
-            }
-          }
-        },
-        "url": {
-          "raw": "{{gateway_url}}/api/solicitudes/1/historial",
-          "host": [
-            "{{gateway_url}}"
-          ],
-          "path": [
-            "api",
-            "solicitudes",
-            "1",
-            "historial"
-          ]
-        }
-      },
-      "response": []
-    }
-  ]
-}
-</file>
-
-<file path="clientes.http">
-### Variables globales
-@gateway = http://localhost:41071
-@msClientes = http://localhost:41074
-@token = eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJWcjVja282TmJtNnl5QmhXaDBZalBlRXQwUUJIallJekp1R2xtOXU2a3NNIn0.eyJleHAiOjE3OTQ1OTQ3NjksImlhdCI6MTc5NDU5NDQ2OSwianRpIjoiN2ExMmJhOTktYTczZi00NGZjLWFiYjYtYTU2MTQ0MTk0MWVhIiwiaXNzIjoiaHR0cDovL2tleWNsb2FrOjgwODAvcmVhbG1zL3BhdGl0byIsInN1YiI6ImIwMjA1NTYwLWJkMWMtNDhlMy05OGZmLTMxODQyZWViODk4OSIsInR5cCI6IkJlYXJlciIsImF6cCI6InBhdGl0by1hcGkiLCJzZXNzaW9uX3N0YXRlIjoiZDFiYmFjNTktZjQ2Yi00ZTFjLTg4OTAtMDYwNDAzNGI3OTc0IiwiYWNyIjoiMSIsImFsbG93ZWQtb3JpZ2lucyI6WyJodHRwOi8vbG9jYWxob3N0OjQxMDcxIl0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJBRE1JTiIsIkNMSUVOVEUiXX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsInNpZCI6ImQxYmJhYzU5LWY0NmItNGUxYy04ODkwLTA2MDQwMzRiNzk3NCIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiQ2FybG9zIEdhcmNpYSIsInByZWZlcnJlZF91c2VybmFtZSI6ImNsaWVudGUxIiwiZ2l2ZW5fbmFtZSI6IkNhcmxvcyIsImZhbWlseV9uYW1lIjoiR2FyY2lhIiwiZW1haWwiOiJjbGllbnRlMUB0ZXN0LmNvbSJ9.Z8MytMq-6dUJcemmVD-k_PcGJP-ChFoNgQ277wLeh0ny5eVemsg9U9mRuewoKFyUtGN3QzSVepTX0j-L1FTRSON0CYxcHOeGhTp8feJK8pwLiR3zCAleWQEGCvPOG3WqY5MoLvKarQVLkCHxgnojGD8iB6lBuyWt5tvjBi6Lq7VmdwZFQMJBHcIP5X-XsaQP9FFOTlG6pau0F9vtyrkJrD3x0R77swbkdahbd2OFKxzQVuuiopO5n1CoF2VG0eC3enMkD8VDJ4CtBkCDPfDVkzmoD2ilIaRchpDWjFvgpZTdrfDD9h4s3AcIh_QWvr24PHczMaXJpHN49Z9hYZojrg
-
-# ==========================================
-# ACCESO DIRECTO AL MICROSERVICIO (Sin Gateway)
-# ==========================================
-
-### 1. Listar todos los clientes (sin token - debería dar 401)
-GET {{gateway}}/api/clientes
-
-### 2. Listar todos los clientes (con token)
-GET {{msClientes}}/api/clientes
-Authorization: Bearer {{token}}
-
-### 3. Obtener un cliente por ID (ID: 1)
-GET {{msClientes}}/api/clientes/1
-Authorization: Bearer {{token}}
-
-### 4. Obtener un cliente por ID (ID inexistente - debería dar 404)
-GET {{msClientes}}/api/clientes/999
-Authorization: Bearer {{token}}
-
-
-# ==========================================
-# A TRAVÉS DEL GATEWAY (Punto de entrada único)
-# ==========================================
-
-### 5. Listar todos los clientes (vía Gateway)
-GET {{gateway}}/api/clientes
-Authorization: Bearer {{token}}
-
-### 6. Obtener un cliente por ID (vía Gateway)
-GET {{gateway}}/api/clientes/1
-Authorization: Bearer {{token}}
-
-### 7. Crear un nuevo cliente
-POST http://localhost:41071/api/login
-Content-Type: application/json
-
-{ "username": "cliente1", "password": "1234" }
-
-### Actualizar cliente
-PUT http://localhost:41071/api/clientes/11111111-1111-1111-1111-111111111111
-Authorization: Bearer {{token}}
-Content-Type: application/json
-
-{
-  "nombre": "Carlos",
-  "apellido": "Garcia Editado",
-  "dni": "44444444",
-  "latitud": -31.420,
-  "longitud": -64.188
-}
-
-### Toggle disponibilidad de técnico
-PATCH http://localhost:41071/api/tecnicos/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/disponibilidad?disponible=false
-Authorization: Bearer {{token}}
-
-### Listar certificaciones
-GET http://localhost:41071/api/tecnicos/certificaciones
-Authorization: Bearer {{token}}
-
-### Ver candidatos de una solicitud
-GET http://localhost:41071/api/solicitudes/1/candidatos
-Authorization: Bearer {{token}}
-
-### Reprogramar
-POST http://localhost:41071/api/solicitudes/1/reprogramar
-Authorization: Bearer {{token}}
-Content-Type: application/json
-
-{
-  "nuevaFecha": "2026-12-01T15:00:00",
-  "motivo": "El cliente no estaba"
-}
-
-### Login programático
-POST http://localhost:41071/api/login
-Content-Type: application/json
-
-{
-  "username": "cliente1",
-  "password": "1234"
-}
-</file>
-
-<file path="Patito Local.postman_environment.json">
-{
-	"id": "91105f0f-54d0-43e6-a288-1fc8790d9670",
-	"name": "Patito Local",
-	"values": [
-		{
-			"key": "gateway_url",
-			"value": "",
-			"type": "default",
-			"enabled": true
-		},
-		{
-			"key": "keycloak_url",
-			"value": "",
-			"type": "default",
-			"enabled": true
-		},
-		{
-			"key": "client_id",
-			"value": "",
-			"type": "default",
-			"enabled": true
-		},
-		{
-			"key": "client_secret",
-			"value": "",
-			"type": "default",
-			"enabled": true
-		},
-		{
-			"key": "token",
-			"value": "",
-			"type": "default",
-			"enabled": true
-		}
-	],
-	"color": null,
-	"_postman_variable_scope": "environment",
-	"_postman_exported_at": "2026-11-09T20:07:32.399Z",
-	"_postman_exported_using": "Postman/12.35.5"
-}
-</file>
-
 <file path="tecnicos.http">
 ### Variables globales
 @gateway = http://localhost:41071
@@ -2558,35 +1934,29 @@ Content-Type: application/json
 }
 </file>
 
-<file path="api-gateway/src/main/java/com/patitosrl/gateway/config/GatewaySecurityConfig.java">
-package com.patitosrl.gateway.config;
+<file path="api-gateway/src/main/java/com/patitosrl/gateway/dto/AuthDtos.java">
+package com.patitosrl.gateway.dto;
 
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.security.config.Customizer;
-import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
-import org.springframework.security.config.web.server.ServerHttpSecurity;
-import org.springframework.security.web.server.SecurityWebFilterChain;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
-@Configuration
-@EnableWebFluxSecurity
-public class GatewaySecurityConfig {
+public class AuthDtos {
 
-    @Bean
-    public SecurityWebFilterChain springSecurityFilterChain(ServerHttpSecurity http) {
-        http.csrf(ServerHttpSecurity.CsrfSpec::disable)
-            .authorizeExchange(exchanges -> exchanges
-                // Permitir el login sin token
-                .pathMatchers("/api/login/**").permitAll()
-                // Permitir Swagger si lo agregás después
-                .pathMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
-                // El resto requiere token
-                .pathMatchers("/api/**").permitAll()
-                .anyExchange().authenticated()
-            )
-            .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()));
-        return http.build();
-    }
+    public record LoginRequest(String username, String password) { }
+
+    public record RefreshRequest(String refreshToken) { }
+
+    public record LogoutRequest(String refreshToken) { }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record TokenResponse(
+            @JsonProperty("access_token") String accessToken,
+            @JsonProperty("refresh_token") String refreshToken,
+            @JsonProperty("expires_in") Integer expiresIn,
+            @JsonProperty("refresh_expires_in") Integer refreshExpiresIn,
+            @JsonProperty("token_type") String tokenType,
+            String scope
+    ) { }
 }
 </file>
 
@@ -2790,6 +2160,38 @@ public interface ClienteRepository extends JpaRepository<Cliente, String> {
 }
 </file>
 
+<file path="ms-clientes/src/main/java/com/patitosrl/ms_clientes/web/dtos/ClienteRequest.java">
+package com.patitosrl.ms_clientes.web.dtos;
+
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import lombok.Data;
+
+@Data
+public class ClienteRequest {
+
+    @NotBlank(message = "El nombre es obligatorio")
+    private String nombre;
+
+    @NotBlank(message = "El apellido es obligatorio")
+    private String apellido;
+
+    @NotBlank(message = "El DNI es obligatorio")
+    private String dni;
+
+    @NotBlank(message = "El email es obligatorio")
+    @Email(message = "El formato del email no es válido")
+    private String email;
+
+    @NotNull(message = "La latitud es obligatoria")
+    private Double latitud;
+
+    @NotNull(message = "La longitud es obligatoria")
+    private Double longitud;
+}
+</file>
+
 <file path="ms-clientes/src/main/java/com/patitosrl/ms_clientes/web/dtos/ClienteResponse.java">
 package com.patitosrl.ms_clientes.web.dtos;
 
@@ -2813,42 +2215,20 @@ public class ClienteResponse {
 }
 </file>
 
-<file path="ms-clientes/Dockerfile">
-# ==========================================
-# Stage 1: Build
-# ==========================================
-FROM maven:3.9.6-eclipse-temurin-21-alpine AS build
+<file path="ms-clientes/src/main/java/com/patitosrl/ms_clientes/web/dtos/CoordenadasRequest.java">
+package com.patitosrl.ms_clientes.web.dtos;
 
-WORKDIR /app
+import jakarta.validation.constraints.NotNull;
+import lombok.Data;
 
-COPY pom.xml ./
-COPY commons-geo/pom.xml ./commons-geo/
-COPY ms-clientes/pom.xml ./ms-clientes/
-COPY ms-tecnicos/pom.xml ./ms-tecnicos/
-COPY ms-solicitudes/pom.xml ./ms-solicitudes/
-COPY api-gateway/pom.xml ./api-gateway/
+@Data
+public class CoordenadasRequest {
+    @NotNull(message = "La latitud es obligatoria")
+    private Double latitud;
 
-COPY commons-geo/src ./commons-geo/src
-COPY ms-clientes/src ./ms-clientes/src
-
-RUN mvn clean package -pl ms-clientes -am -DskipTests
-
-# ==========================================
-# Stage 2: Runtime
-# ==========================================
-FROM eclipse-temurin:21-jre-alpine AS final
-
-WORKDIR /app
-
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup
-
-COPY --from=build --chown=appuser:appgroup /app/ms-clientes/target/ms-clientes-1.0.0-SNAPSHOT.jar /app/app.jar
-
-USER appuser
-
-EXPOSE 41074
-
-ENTRYPOINT [ "java", "-jar", "app.jar" ]
+    @NotNull(message = "La longitud es obligatoria")
+    private Double longitud;
+}
 </file>
 
 <file path="ms-solicitudes/src/main/java/com/patitosrl/ms_solicitudes/business/exceptions/ClienteNoEncontradoException.java">
@@ -3033,6 +2413,1686 @@ public class TecnicoRemoto {
     public static class CertificacionRemota {
         private String id;
         private String nombre;
+    }
+}
+</file>
+
+<file path="ms-solicitudes/src/main/java/com/patitosrl/ms_solicitudes/web/dtos/ElegirTecnicoResponse.java">
+package com.patitosrl.ms_solicitudes.web.dtos;
+
+import com.patitosrl.ms_solicitudes.business.services.costo.CostoVisitaStrategy;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+
+@Data
+@AllArgsConstructor
+public class ElegirTecnicoResponse {
+    private String tecnicoId;
+    private String nombre;
+    private Double distanciaKm;
+    private Integer tiempoEstimadoMin;
+    private CostoDetalle costo;
+
+    /** Constructor que convierte directamente el resultado del Strategy al DTO */
+    public ElegirTecnicoResponse(String tecnicoId, String nombre, Double distanciaKm,
+                                 Integer tiempoEstimadoMin, CostoVisitaStrategy.ResultadoCosto r) {
+        this(tecnicoId, nombre, distanciaKm, tiempoEstimadoMin,
+             new CostoDetalle(r.estrategia(), r.costoBase(), r.recargo(), r.total()));
+    }
+
+    @Data 
+    @AllArgsConstructor
+    public static class CostoDetalle {
+        private String estrategia;
+        private double costoBase;
+        private double recargo;
+        private double total;
+    }
+}
+</file>
+
+<file path="ms-solicitudes/src/test/java/com/patitosrl/ms_solicitudes/business/services/AsignacionServiceTest.java">
+package com.patitosrl.ms_solicitudes.business.services;
+
+import com.patitosrl.geo.GeoService;
+import com.patitosrl.ms_solicitudes.business.exceptions.ReglaDeNegocioException;
+import com.patitosrl.ms_solicitudes.business.models.EstadoSolicitud;
+import com.patitosrl.ms_solicitudes.business.models.Solicitud;
+import com.patitosrl.ms_solicitudes.business.models.TecnicoRemoto;
+import com.patitosrl.ms_solicitudes.infrastructure.clients.TecnicosClient;
+import com.patitosrl.ms_solicitudes.infrastructure.repositories.HistorialEstadoRepository;
+import com.patitosrl.ms_solicitudes.infrastructure.repositories.SolicitudRepository;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.util.List;
+import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.*;
+
+@ExtendWith(MockitoExtension.class)
+class AsignacionServiceTest {
+
+    @Mock private SolicitudRepository solicitudes;
+    @Mock private HistorialEstadoRepository historial;
+    @Mock private TecnicosClient tecnicos;
+    @Mock private GeoService geoService;
+    @Mock private CostoService costoService;
+
+    @InjectMocks
+    private AsignacionService service;
+
+    @Test
+    void debeLanzarExcepcionSiElTecnicoNoEstaDisponible() {
+        Long solicitudId = 1L;
+        String tecnicoId = "2";
+
+        Solicitud s = new Solicitud();
+        s.setEstado(EstadoSolicitud.PENDIENTE);
+        when(solicitudes.findById(solicitudId)).thenReturn(Optional.of(s));
+
+        TecnicoRemoto t = new TecnicoRemoto();
+        t.setId(tecnicoId);
+        t.setDisponible(false);
+        when(tecnicos.buscarPorId(tecnicoId)).thenReturn(t);
+
+        assertThrows(ReglaDeNegocioException.class, () -> service.ofertar(solicitudId, tecnicoId));
+    }
+
+    @Test
+    void debeLanzarExcepcionSiElTecnicoYaTieneUnaSolicitudEnCurso() {
+        Long solicitudId = 1L;
+        String tecnicoId = "2";
+
+        Solicitud s = new Solicitud();
+        s.setEstado(EstadoSolicitud.PENDIENTE);
+        when(solicitudes.findById(solicitudId)).thenReturn(Optional.of(s));
+
+        TecnicoRemoto t = new TecnicoRemoto();
+        t.setId(tecnicoId);
+        t.setDisponible(true);
+        when(tecnicos.buscarPorId(tecnicoId)).thenReturn(t);
+
+        when(solicitudes.findByTecnicoIdAndEstado(tecnicoId, EstadoSolicitud.EN_CURSO))
+                .thenReturn(List.of(new Solicitud()));
+
+        assertThrows(ReglaDeNegocioException.class, () -> service.ofertar(solicitudId, tecnicoId));
+    }
+}
+</file>
+
+<file path="ms-solicitudes/src/test/java/com/patitosrl/ms_solicitudes/business/services/OfertaSchedulerTest.java">
+package com.patitosrl.ms_solicitudes.business.services;
+
+import com.patitosrl.ms_solicitudes.business.models.EstadoSolicitud;
+import com.patitosrl.ms_solicitudes.business.models.Solicitud;
+import com.patitosrl.ms_solicitudes.infrastructure.repositories.HistorialEstadoRepository;
+import com.patitosrl.ms_solicitudes.infrastructure.repositories.SolicitudRepository;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.*;
+
+@ExtendWith(MockitoExtension.class)
+class OfertaSchedulerTest {
+
+    @Mock private SolicitudRepository solicitudes;
+    @Mock private HistorialEstadoRepository historial;
+
+    @InjectMocks
+    private OfertaScheduler scheduler;
+
+    @Test
+    void debeDevolverAPendienteLasOfertasVencidas() {
+        Solicitud vencida = new Solicitud();
+        vencida.setId(1L);
+        vencida.setEstado(EstadoSolicitud.OFERTADA);
+        vencida.setTecnicoId("10");              // ← antes: 10L
+        vencida.setTecnicoNombre("Juan Perez");
+        vencida.setOfertaExpira(LocalDateTime.now().minusMinutes(1));
+
+        when(solicitudes.findByEstadoAndOfertaExpiraBefore(eq(EstadoSolicitud.OFERTADA), any(LocalDateTime.class)))
+                .thenReturn(List.of(vencida));
+
+        scheduler.vencerOfertas();
+
+        verify(solicitudes, times(1)).save(argThat(s ->
+            s.getEstado() == EstadoSolicitud.PENDIENTE &&
+            s.getTecnicoId() == null &&
+            s.getOfertaExpira() == null
+        ));
+        verify(historial, times(1)).save(any());
+    }
+
+    @Test
+    void noDebeHacerNadaSiNoHayOfertasVencidas() {
+        when(solicitudes.findByEstadoAndOfertaExpiraBefore(eq(EstadoSolicitud.OFERTADA), any(LocalDateTime.class)))
+                .thenReturn(List.of());
+
+        scheduler.vencerOfertas();
+
+        verify(solicitudes, never()).save(any());
+        verify(historial, never()).save(any());
+    }
+}
+</file>
+
+<file path="ms-tecnicos/src/main/java/com/patitosrl/ms_tecnicos/business/exceptions/TecnicoNoEncontradoException.java">
+package com.patitosrl.ms_tecnicos.business.exceptions;
+
+public class TecnicoNoEncontradoException extends RuntimeException {
+    public TecnicoNoEncontradoException(String id) {
+        super("No existe el técnico con id " + id);
+    }
+}
+</file>
+
+<file path="ms-tecnicos/src/main/java/com/patitosrl/ms_tecnicos/business/models/Tecnico.java">
+package com.patitosrl.ms_tecnicos.business.models;
+
+import java.util.List;
+
+import jakarta.persistence.*;
+import lombok.*;
+
+@Entity
+@Table(name = "tecnicos")
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class Tecnico {
+
+    @Id
+    @Column(length = 36, nullable = false) // UUID de Keycloak
+    private String id;
+
+    @Column(nullable = false, length = 60)
+    private String nombre;
+
+    @Column(nullable = false, length = 60)
+    private String apellido;
+
+    @Column(nullable = false, unique = true, length = 20)
+    private String dni;
+
+    @Column(nullable = false)
+    private Double latitud;
+
+    @Column(nullable = false)
+    private Double longitud;
+
+    @Column(nullable = false)
+    private Boolean disponible;
+
+    @ManyToMany(fetch = FetchType.EAGER)
+    @JoinTable(
+        name = "tecnico_certificacion",
+        joinColumns = @JoinColumn(name = "tecnico_id"),
+        inverseJoinColumns = @JoinColumn(name = "certificacion_id")
+    )
+    private List<Certificacion> certificaciones;
+
+    @ManyToMany(fetch = FetchType.EAGER)
+    @JoinTable(
+        name = "tecnico_zona",
+        joinColumns = @JoinColumn(name = "tecnico_id"),
+        inverseJoinColumns = @JoinColumn(name = "zona_id")
+    )
+    private List<ZonaCobertura> zonasCobertura;
+}
+</file>
+
+<file path="ms-tecnicos/src/main/java/com/patitosrl/ms_tecnicos/infrastructure/config/DataLoader.java">
+package com.patitosrl.ms_tecnicos.infrastructure.config;
+
+import java.util.List;
+
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.stereotype.Component;
+
+import com.patitosrl.ms_tecnicos.business.models.Certificacion;
+import com.patitosrl.ms_tecnicos.business.models.Tecnico;
+import com.patitosrl.ms_tecnicos.business.models.ZonaCobertura;
+import com.patitosrl.ms_tecnicos.infrastructure.repositories.CertificacionRepository;
+import com.patitosrl.ms_tecnicos.infrastructure.repositories.TecnicoRepository;
+import com.patitosrl.ms_tecnicos.infrastructure.repositories.ZonaCoberturaRepository;
+
+import lombok.RequiredArgsConstructor;
+
+@Component
+@RequiredArgsConstructor
+public class DataLoader implements CommandLineRunner {
+
+    private final TecnicoRepository tecnicos;
+    private final CertificacionRepository certificaciones;
+    private final ZonaCoberturaRepository zonas;
+
+    @Override
+    public void run(String... args) {
+        if (tecnicos.count() > 0) return;
+
+        Certificacion redes = certificaciones.save(new Certificacion(null, "Redes"));
+        Certificacion impresoras = certificaciones.save(new Certificacion(null, "Impresoras"));
+        Certificacion notebooks = certificaciones.save(new Certificacion(null, "Notebooks Apple"));
+
+        ZonaCobertura centro = zonas.save(new ZonaCobertura(null, "Centro"));
+        ZonaCobertura nuevaCordoba = zonas.save(new ZonaCobertura(null, "Nueva Córdoba"));
+
+        tecnicos.saveAll(List.of(
+            Tecnico.builder()
+                .id("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
+                .nombre("Juan").apellido("Perez").dni("11111111")
+                .latitud(-31.415).longitud(-64.190).disponible(true)
+                .certificaciones(List.of(redes, impresoras))
+                .zonasCobertura(List.of(centro, nuevaCordoba)).build(),
+            Tecnico.builder()
+                .id("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb")
+                .nombre("Ana").apellido("Gomez").dni("22222222")
+                .latitud(-31.430).longitud(-64.180).disponible(true)
+                .certificaciones(List.of(impresoras, notebooks))
+                .zonasCobertura(List.of(centro)).build(),
+            Tecnico.builder()
+                .id("cccccccc-cccc-cccc-cccc-cccccccccccc")
+                .nombre("Lejano").apellido("Lopez").dni("33333333")
+                .latitud(-31.424).longitud(-64.500).disponible(true)
+                .certificaciones(List.of(redes))
+                .zonasCobertura(List.of(centro)).build()
+        ));
+        System.out.println("Técnicos de prueba cargados.");
+    }
+}
+</file>
+
+<file path="ms-tecnicos/src/main/java/com/patitosrl/ms_tecnicos/infrastructure/config/SecurityConfig.java">
+package com.patitosrl.ms_tecnicos.infrastructure.config;
+
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.Customizer;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
+import org.springframework.security.web.SecurityFilterChain;
+
+@Configuration
+@EnableWebSecurity
+@EnableMethodSecurity // Permite usar @PreAuthorize("hasRole('ADMIN')") en los controllers
+public class SecurityConfig {
+
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        http.csrf(csrf -> csrf.disable())
+            .authorizeHttpRequests(auth -> auth
+                .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll() // Habilita Swagger sin auth
+                .anyRequest().authenticated()
+                
+            )
+            .oauth2ResourceServer(oauth2 -> oauth2
+                .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthConverter()))
+            );
+        return http.build();
+    }
+
+    @Bean
+    public JwtAuthenticationConverter jwtAuthConverter() {
+        JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
+        converter.setJwtGrantedAuthoritiesConverter(jwt -> {
+            Map<String, Object> realmAccess = jwt.getClaim("realm_access");
+            if (realmAccess == null || !realmAccess.containsKey("roles")) {
+                return List.of();
+            }
+            Collection<String> roles = (Collection<String>) realmAccess.get("roles");
+            return roles.stream()
+                    .map(role -> new SimpleGrantedAuthority("ROLE_" + role.toUpperCase()))
+                    .collect(Collectors.toList());
+        });
+        return converter;
+    }
+}
+</file>
+
+<file path="ms-tecnicos/src/main/java/com/patitosrl/ms_tecnicos/infrastructure/repositories/TecnicoRepository.java">
+package com.patitosrl.ms_tecnicos.infrastructure.repositories;
+
+import java.util.List;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import com.patitosrl.ms_tecnicos.business.models.Tecnico;
+
+@Repository
+public interface TecnicoRepository extends JpaRepository<Tecnico, String> {
+    List<Tecnico> findByDisponibleTrue();
+    boolean existsByDni(String dni);
+}
+</file>
+
+<file path="ms-tecnicos/src/main/java/com/patitosrl/ms_tecnicos/web/dtos/TecnicoResponse.java">
+package com.patitosrl.ms_tecnicos.web.dtos;
+
+import java.util.List;
+
+import com.patitosrl.ms_tecnicos.business.models.Tecnico;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+
+@Data
+@AllArgsConstructor
+public class TecnicoResponse {
+    private String id;
+    private String nombre;
+    private String apellido;
+    private String dni;
+    private Double latitud;
+    private Double longitud;
+    private Boolean disponible;
+    private List<ItemResponse> certificaciones;
+    private List<ItemResponse> zonasCobertura;
+
+    public record ItemResponse(Long id, String nombre) { }
+
+    public static TecnicoResponse desde(Tecnico t) {
+        return new TecnicoResponse(
+                t.getId(), t.getNombre(), t.getApellido(), t.getDni(),
+                t.getLatitud(), t.getLongitud(), t.getDisponible(),
+                t.getCertificaciones() == null ? List.of() : t.getCertificaciones().stream()
+                        .map(c -> new ItemResponse(c.getId(), c.getNombre())).toList(),
+                t.getZonasCobertura() == null ? List.of() : t.getZonasCobertura().stream()
+                        .map(z -> new ItemResponse(z.getId(), z.getNombre())).toList());
+    }
+}
+</file>
+
+<file path="ms-tecnicos/src/test/java/com/patitosrl/ms_tecnicos/business/services/TecnicoServiceTest.java">
+package com.patitosrl.ms_tecnicos.business.services;
+
+import java.util.List;
+
+import com.patitosrl.ms_tecnicos.business.models.Certificacion;
+import com.patitosrl.ms_tecnicos.business.models.Tecnico;
+import com.patitosrl.ms_tecnicos.infrastructure.repositories.CertificacionRepository;
+import com.patitosrl.ms_tecnicos.infrastructure.repositories.TecnicoRepository;
+import com.patitosrl.ms_tecnicos.infrastructure.repositories.ZonaCoberturaRepository;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.when;
+
+@ExtendWith(MockitoExtension.class)
+class TecnicoServiceTest {
+
+    @Mock private TecnicoRepository tecnicos;
+    @Mock private CertificacionRepository certificaciones;
+    @Mock private ZonaCoberturaRepository zonas;
+
+    private TecnicoService service;
+
+    private Tecnico juanCerca;
+    private Tecnico anaLejos;
+
+    @BeforeEach
+    void setUp() {
+        // Instanciamos el servicio con los 3 mocks
+        // (el radio de candidatos lo inyecta @Value, pero como es un test unitario, no se inyecta)
+        service = new TecnicoService(tecnicos, certificaciones, zonas);
+
+        Certificacion redes = new Certificacion(1L, "Redes");
+
+        // Técnico a 1 km aprox del centro (-31.420, -64.188) con ID String
+        juanCerca = Tecnico.builder()
+                .id("11111111-1111-1111-1111-111111111111")
+                .nombre("Juan").disponible(true)
+                .latitud(-31.415).longitud(-64.190)
+                .certificaciones(List.of(redes))
+                .build();
+
+        // Técnico a 30 km aprox (fuera del radio) con ID String
+        anaLejos = Tecnico.builder()
+                .id("22222222-2222-2222-2222-222222222222")
+                .nombre("Ana").disponible(true)
+                .latitud(-31.424).longitud(-64.500)
+                .certificaciones(List.of(redes))
+                .build();
+    }
+
+    @Test
+    void debeFiltrarTecnicosPorCertificacionYCercania() {
+        when(tecnicos.findByDisponibleTrue()).thenReturn(List.of(juanCerca, anaLejos));
+
+        List<Tecnico> resultado = service.buscarCandidatos(-31.420, -64.188, "Redes");
+
+        assertEquals(1, resultado.size());
+        assertEquals("Juan", resultado.get(0).getNombre());
+        assertFalse(resultado.stream().anyMatch(t -> t.getNombre().equals("Ana")));
+    }
+
+    @Test
+    void debeRetornarListaVaciaSiNoHayTecnicosConLaCertificacion() {
+        when(tecnicos.findByDisponibleTrue()).thenReturn(List.of(juanCerca));
+
+        List<Tecnico> resultado = service.buscarCandidatos(-31.420, -64.188, "Impresoras");
+
+        assertTrue(resultado.isEmpty());
+    }
+}
+</file>
+
+<file path=".gitignore">
+# Maven
+target/
+!.mvn/wrapper/maven-wrapper.jar
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.iws
+*.ipr
+*.classpath
+*.project
+.settings/
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Configuración local
+application-local.yml
+
+# TEMPORAL: carpeta vieja hasta que todos migren
+
+repomix-output.xml
+</file>
+
+<file path="backend.postman_collection.json">
+{
+  "info": {
+    "_postman_id": "d647933b-776c-4ed9-9c43-85bc96c075d5",
+    "name": "backend",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "54931068"
+  },
+  "item": [
+    {
+      "name": "Obtenertoken",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Guarda el token automáticamente en la variable de entorno\npm.environment.set(\"token\", pm.response.json().access_token);\n\nconsole.log(\"Mi token:\", pm.response.json().access_token);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "urlencoded",
+          "urlencoded": [
+            {
+              "key": "client_id",
+              "value": "patito-api"
+            },
+            {
+              "key": "client_secret",
+              "value": "GqcfBK6kuQGuGr9WLQTdUXEv97cxNSmz"
+            },
+            {
+              "key": "grant_type",
+              "value": "password"
+            },
+            {
+              "key": "username",
+              "value": "superadmin"
+            },
+            {
+              "key": "password",
+              "value": "admin123"
+            }
+          ]
+        },
+        "url": {
+          "raw": "http://localhost:41090/realms/patito/protocol/openid-connect/token",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "41090",
+          "path": [
+            "realms",
+            "patito",
+            "protocol",
+            "openid-connect",
+            "token"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Obtenertoken Cliente",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Guarda el token automáticamente en la variable de entorno\npm.environment.set(\"token\", pm.response.json().access_token);\n\nconsole.log(\"Mi token:\", pm.response.json().access_token);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "urlencoded",
+          "urlencoded": [
+            {
+              "key": "client_id",
+              "value": "patito-api"
+            },
+            {
+              "key": "client_secret",
+              "value": "GqcfBK6kuQGuGr9WLQTdUXEv97cxNSmz"
+            },
+            {
+              "key": "grant_type",
+              "value": "password"
+            },
+            {
+              "key": "username",
+              "value": "5235325325"
+            },
+            {
+              "key": "password",
+              "value": "11223344"
+            }
+          ]
+        },
+        "url": {
+          "raw": "http://localhost:41090/realms/patito/protocol/openid-connect/token",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "41090",
+          "path": [
+            "realms",
+            "patito",
+            "protocol",
+            "openid-connect",
+            "token"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Lista de Técnicos",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{gateway_url}}/api/tecnicos",
+          "host": [
+            "{{gateway_url}}"
+          ],
+          "path": [
+            "api",
+            "tecnicos"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Lista de clientes",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{gateway_url}}/api/clientes?Authorization=Bearer {{token}}",
+          "host": [
+            "{{gateway_url}}"
+          ],
+          "path": [
+            "api",
+            "clientes"
+          ],
+          "query": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{token}}"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Crear Cliente",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"m\",\n  \"apellido\": \"m\",\n  \"email\": \"mmmm@test.com\",\n  \"dni\": \"999999\",\n  \"latitud\": -31.42,\n  \"longitud\": -64.188\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{gateway_url}}/api/clientes",
+          "host": [
+            "{{gateway_url}}"
+          ],
+          "path": [
+            "api",
+            "clientes"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Crear Cliente Copy",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"Carlos\",\n  \"apellido\": \"Garcia\",\n  \"dni\": \"5235325325\",\n  \"latitud\": -31.420,\n  \"longitud\": -64.188\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{gateway_url}}/api/clientes?Authorization=Bearer {{token}}",
+          "host": [
+            "{{gateway_url}}"
+          ],
+          "path": [
+            "api",
+            "clientes"
+          ],
+          "query": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{token}}"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "acceso rechazado",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{gateway_url}}/api/tecnicos",
+          "host": [
+            "{{gateway_url}}"
+          ],
+          "path": [
+            "api",
+            "tecnicos"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Crear solicitud",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"clienteId\": 11111111-1111-1111-1111-111111111111,\n  \"domicilio\": \"Av. Colón 1234\",\n  \"tiposServicio\": [\"REPARACION\"],\n  \"marca\": \"Apple\",\n  \"modelo\": \"MacBook Pro\",\n  \"descripcion\": \"Pantalla no enciende\",\n  \"especialidadId\": 3,\n  \"prioridad\": \"NORMAL\",\n  \"fechaHoraProgramada\": \"2026-11-10T10:00:00\",\n  \"esFeriado\": false\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{gateway_url}}/api/solicitudes",
+          "host": [
+            "{{gateway_url}}"
+          ],
+          "path": [
+            "api",
+            "solicitudes"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Consultar historial por id",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{gateway_url}}/api/solicitudes/1/historial",
+          "host": [
+            "{{gateway_url}}"
+          ],
+          "path": [
+            "api",
+            "solicitudes",
+            "1",
+            "historial"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Consultar técnico más cercado con certificación",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:41071/api/tecnicos/candidatos?lat=-31.420&lon=-64.188&certificacion=Notebooks Apple",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "41071",
+          "path": [
+            "api",
+            "tecnicos",
+            "candidatos"
+          ],
+          "query": [
+            {
+              "key": "lat",
+              "value": "-31.420"
+            },
+            {
+              "key": "lon",
+              "value": "-64.188"
+            },
+            {
+              "key": "certificacion",
+              "value": "Notebooks Apple"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "ofertar a técnico",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:41071/api/solicitudes/1/ofertar/2",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "41071",
+          "path": [
+            "api",
+            "solicitudes",
+            "1",
+            "ofertar",
+            "2"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "New Request",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "urlencoded",
+          "urlencoded": [
+            {
+              "key": "grant_type",
+              "value": "password"
+            },
+            {
+              "key": "client_id",
+              "value": "{{client_id}}"
+            },
+            {
+              "key": "client_secret",
+              "value": "{{client_secret}}"
+            },
+            {
+              "key": "username",
+              "value": "carlos.garcia"
+            },
+            {
+              "key": "password",
+              "value": "carlos123"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{token_url}}",
+          "host": [
+            "{{token_url}}"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Crear Cliente Gateway",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Pedir los datos usando ventanas emergentes\npm.variables.set(\"nombre\", prompt(\"Ingresá el Nombre:\"));\npm.variables.set(\"apellido\", prompt(\"Ingresá el Apellido:\"));\npm.variables.set(\"email\", prompt(\"Ingresá el Email:\"));\npm.variables.set(\"dni\", prompt(\"Ingresá el DNI:\"));\npm.variables.set(\"latitud\", prompt(\"Ingresá la Latitud (ej: -31.42):\"));\npm.variables.set(\"longitud\", prompt(\"Ingresá la Longitud (ej: -64.188):\"));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"{{nombre}}\",\n  \"apellido\": \"{{apellido}}\",\n  \"email\": \"{{email}}\",\n  \"dni\": \"{{dni}}\",\n  \"latitud\": {{latitud}},\n  \"longitud\": {{longitud}}\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{keycloak_url}}/admin/realms/{{realm}}/users",
+          "host": [
+            "{{keycloak_url}}"
+          ],
+          "path": [
+            "admin",
+            "realms",
+            "{{realm}}",
+            "users"
+          ]
+        }
+      },
+      "response": []
+    }
+  ]
+}
+</file>
+
+<file path="clientes.http">
+### Variables globales
+@gateway = http://localhost:41071
+@msClientes = http://localhost:41074
+@token = eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJWcjVja282TmJtNnl5QmhXaDBZalBlRXQwUUJIallJekp1R2xtOXU2a3NNIn0.eyJleHAiOjE3OTQ1OTUxNzQsImlhdCI6MTc5NDU5NDg3NCwianRpIjoiNWYxNTkwZWItY2U2NS00MTYyLThmNDctMzFiMGE4NmEwYmRhIiwiaXNzIjoiaHR0cDovL2tlZXljbG9hayA6ODA4MC9yZWFsbXMv cGF0aXRvIiwic3ViIjoiYjAyMDU1NjAtYmQxYy00OGUzLTk4ZmYtMzE4NDJldmI4OTg5IiwidHlwIjoiQmVhcmVyIiwiYXpwIjoi cGF0aXRvLWFwaSIsInNlc3Npb25fc3RhdGUiOiI0OWRkMzhhOS0xNmUxLTRhZWUtOWFkZS01ZWIzNWExODA0MjYiLCJhY3IiOiIxIiwiYWxsb3dlZC1vcmlnaW5zIjpbImh0dHA6Ly9sb2NhbGhvc3Q6NDEwNzEiXSwicmVhbG1fYWNjZXNzIjp7InJvbGVzIjpbIkFETUlOIiwiQ0xJRU5URSJdfSwic2NvcGUiOiJlbWFpbCBwcm9maWxlIiwic2lkIjoiNDlkZDM4YTktMTZlMS00YWVlLTlhZGUtNWViYzVhNzgwNDI2IiwiZW1haWxfdmVyaWZpZWQiOnRydWUsIm5hbWUiOiJDYXJsbyBH YXJjaWEiLCJwcmVmZXJyZWQtdXNlcm5hbWUiOiJjbGllbnRlMSIsImdpdmVuLW5hbWUiOiJDYXJsbyIsImZhbWlseS1uYW1lIjoiR2FyY2lhIiwiZW1haWwiOiJjbGllbnRlMUB0ZXN0LmNvbSJ9.L8MytMq-6dUJcemmVD-k_PcGJP-ChFoNgQ277wLeh0ny5eVemsg9U9mRuewoKFyUtGN3QzSVepTX0j-L1FTRSON0CYxcHOeGhTp8feJK8pwLiR3zCAleWQEGCvPOG3WqY5MoLvKarQVLkCHxgnojGD8iB6lBuyWt5tvjBi6Lq7VmdwZFQMJBHcIP5X-XsaQP9FFOTlG6pau0F9vtyrkJrD3x0R77swbkdahbd2OFKxzQVuuiopO5n1CoF2VG0eC3enMkD8VDJ4CtBkCDPfDVkzmoD2ilIaRchpDWjFvgpZTdrfDD9h4s3AcIh_QWvr24PHczMaXJpHN49Z9hYZojrg
+
+# ==========================================
+# ACCESO DIRECTO AL MICROSERVICIO (Sin Gateway)
+# ==========================================
+
+### 1. Listar todos los clientes (sin token - debería dar 401)
+GET {{gateway}}/api/clientes
+
+### 2. Listar todos los clientes (con token)
+GET {{msClientes}}/api/clientes
+Authorization: Bearer {{token}}
+
+### 3. Obtener un cliente por ID (ID: 1)
+GET {{msClientes}}/api/clientes/1
+Authorization: Bearer {{token}}
+
+### 4. Obtener un cliente por ID (ID inexistente - debería dar 404)
+GET {{msClientes}}/api/clientes/999
+Authorization: Bearer {{token}}
+
+
+# ==========================================
+# A TRAVÉS DEL GATEWAY (Punto de entrada único)
+# ==========================================
+
+### 5. Listar todos los clientes (vía Gateway)
+GET {{gateway}}/api/clientes
+Authorization: Bearer {{token}}
+
+### 6. Obtener un cliente por ID (vía Gateway)
+GET {{gateway}}/api/clientes/1
+Authorization: Bearer {{token}}
+
+### 7. Crear un nuevo cliente
+POST http://localhost:41071/api/login
+Content-Type: application/json
+
+{ "username": "cliente1", "password": "1234" }
+
+### Actualizar cliente
+PUT http://localhost:41071/api/clientes/11111111-1111-1111-1111-111111111111
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "nombre": "Carlos",
+  "apellido": "Garcia Editado",
+  "dni": "44444444",
+  "latitud": -31.420,
+  "longitud": -64.188
+}
+
+### Toggle disponibilidad de técnico
+PATCH http://localhost:41071/api/tecnicos/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/disponibilidad?disponible=false
+Authorization: Bearer {{token}}
+
+### Listar certificaciones
+GET http://localhost:41071/api/tecnicos/certificaciones
+Authorization: Bearer {{token}}
+
+### Ver candidatos de una solicitud
+GET http://localhost:41071/api/solicitudes/1/candidatos
+Authorization: Bearer {{token}}
+
+### Reprogramar
+POST http://localhost:41071/api/solicitudes/1/reprogramar
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "nuevaFecha": "2026-12-01T15:00:00",
+  "motivo": "El cliente no estaba"
+}
+
+### Login programático
+POST http://localhost:41071/api/login
+Content-Type: application/json
+
+{
+  "username": "cliente1",
+  "password": "1234"
+}
+</file>
+
+<file path="Patito Local.postman_environment.json">
+{
+	"id": "91105f0f-54d0-43e6-a288-1fc8790d9670",
+	"name": "Patito Local",
+	"values": [
+		{
+			"key": "gateway_url",
+			"value": "",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "keycloak_url",
+			"value": "",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "client_id",
+			"value": "",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "client_secret",
+			"value": "",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "realm",
+			"value": "",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "token_url",
+			"value": "",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "token",
+			"value": "",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "kc_admin_user",
+			"value": "",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "kc_admin_pass",
+			"value": "",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "token_kc_admin",
+			"value": "",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "keycloak_id",
+			"value": "",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "tecnico_id",
+			"value": "",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "nombre",
+			"value": "",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "apellido",
+			"value": "",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "email",
+			"value": "",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "dni",
+			"value": "",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "latitud",
+			"value": "",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "longitud",
+			"value": "",
+			"type": "default",
+			"enabled": true
+		}
+	],
+	"color": null,
+	"_postman_variable_scope": "environment",
+	"_postman_exported_at": "2026-11-14T19:15:07.277Z",
+	"_postman_exported_using": "Postman/12.36.4"
+}
+</file>
+
+<file path="api-gateway/src/main/java/com/patitosrl/gateway/config/GatewaySecurityConfig.java">
+package com.patitosrl.gateway.config;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.Customizer;
+import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
+import org.springframework.security.config.web.server.ServerHttpSecurity;
+import org.springframework.security.web.server.SecurityWebFilterChain;
+
+@Configuration
+@EnableWebFluxSecurity
+public class GatewaySecurityConfig {
+
+    @Bean
+    public SecurityWebFilterChain springSecurityFilterChain(ServerHttpSecurity http) {
+        http
+            .csrf(ServerHttpSecurity.CsrfSpec::disable)
+            .authorizeExchange(exchanges -> exchanges
+                // Rutas públicas (login y swagger) no requieren token
+                .pathMatchers("/api/login/**", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+                // Rutas de la API requieren autenticación (el token debe ser válido)
+                .pathMatchers("/api/**").authenticated()
+                // Cualquier otra ruta requiere autenticación
+                .anyExchange().authenticated()
+            )
+            // Habilitamos la validación del JWT en el Gateway
+            .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()));
+        
+        return http.build();
+    }
+}
+</file>
+
+<file path="api-gateway/src/main/java/com/patitosrl/gateway/controller/AuthController.java">
+package com.patitosrl.gateway.controller;
+
+import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.RestClient;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+
+@RestController
+public class AuthController {
+
+    // URL INTERNA DE DOCKER PARA KEYCLOAK
+    private static final String KEYCLOAK_TOKEN_URL = "http://keycloak:8080/realms/patito/protocol/openid-connect/token";
+    
+    // URL DE REDIRECCIÓN (apunta al puerto del Gateway)
+    private static final String REDIRECT_URI = "http://localhost:41071/api/login/oauth2/code/keycloak";
+    
+    private static final String CLIENT_ID = "patito-api";
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
+    @GetMapping("/api/login/oauth2/code/keycloak")
+    public String intercambiarCode(@RequestParam String code) {
+        RestClient restClient = RestClient.create();
+
+        System.out.println("===============================================");
+        System.out.println("CALLBACK DE KEYCLOAK RECIBIDO");
+        System.out.println("Authorization Code: " + code);
+        System.out.println("===============================================");
+
+        // 1. Construir el Form Data
+        String formData = "grant_type=authorization_code" +
+                "&code=" + URLEncoder.encode(code, StandardCharsets.UTF_8) +
+                "&client_id=" + CLIENT_ID +
+                "&redirect_uri=" + URLEncoder.encode(REDIRECT_URI, StandardCharsets.UTF_8);
+
+        // 2. Intercambiar CODE por TOKEN
+        String tokenResponse;
+        try {
+            tokenResponse = restClient.post()
+                    .uri(KEYCLOAK_TOKEN_URL)
+                    .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                    .body(formData)
+                    .retrieve()
+                    .body(String.class);
+        } catch (Exception e) {
+            System.err.println("ERROR al pedir token a Keycloak: " + e.getMessage());
+            return "<h2>Error de autenticación</h2><p>No se pudo obtener el token.</p>";
+        }
+
+        // 3. Parsear el token y mostrar la información al usuario
+        try {
+            JsonNode tokenJson = OBJECT_MAPPER.readTree(tokenResponse);
+            String accessToken = tokenJson.get("access_token").asText();
+
+            // Devolvemos una página HTML simple con el token (para pruebas)
+            return """
+                    <html>
+                    <body>
+                        <h2>Login Exitoso</h2>
+                        <p>Token JWT obtenido correctamente.</p>
+                        <p><b>Copia este token para tus pruebas en Swagger o Postman:</b></p>
+                        <textarea rows="10" cols="80" readonly>""" + accessToken + """
+                        </textarea>
+                    </body>
+                    </html>
+                    """;
+        } catch (Exception e) {
+            return "<h2>Error procesando el token</h2><p>Revisa la consola para más detalles.</p>";
+        }
+    }
+
+    private static final String CLIENT_SECRET = "patito-secret-1234";
+
+    @PostMapping("/api/login")
+    public org.springframework.http.ResponseEntity<com.patitosrl.gateway.dto.AuthDtos.TokenResponse> login(
+            @RequestBody com.patitosrl.gateway.dto.AuthDtos.LoginRequest req) {
+        RestClient restClient = RestClient.create();
+
+        String formData = "grant_type=password" +
+                "&client_id=" + CLIENT_ID +
+                "&client_secret=" + CLIENT_SECRET +
+                "&username=" + URLEncoder.encode(req.username(), StandardCharsets.UTF_8) +
+                "&password=" + URLEncoder.encode(req.password(), StandardCharsets.UTF_8);
+
+        try {
+            String body = restClient.post()
+                    .uri(KEYCLOAK_TOKEN_URL)
+                    .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                    .body(formData)
+                    .retrieve()
+                    .body(String.class);
+
+            var token = OBJECT_MAPPER.readValue(body, com.patitosrl.gateway.dto.AuthDtos.TokenResponse.class);
+            return org.springframework.http.ResponseEntity.ok(token);
+        } catch (Exception e) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.UNAUTHORIZED, "Credenciales inválidas o Keycloak no disponible");
+        }
+    }
+
+    @PostMapping("/api/refresh")
+    public org.springframework.http.ResponseEntity<com.patitosrl.gateway.dto.AuthDtos.TokenResponse> refresh(
+            @RequestBody com.patitosrl.gateway.dto.AuthDtos.RefreshRequest req) {
+        RestClient restClient = RestClient.create();
+
+        String formData = "grant_type=refresh_token" +
+                "&client_id=" + CLIENT_ID +
+                "&client_secret=" + CLIENT_SECRET +
+                "&refresh_token=" + URLEncoder.encode(req.refreshToken(), StandardCharsets.UTF_8);
+
+        try {
+            String body = restClient.post()
+                    .uri(KEYCLOAK_TOKEN_URL)
+                    .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                    .body(formData)
+                    .retrieve()
+                    .body(String.class);
+
+            var token = OBJECT_MAPPER.readValue(body, com.patitosrl.gateway.dto.AuthDtos.TokenResponse.class);
+            return org.springframework.http.ResponseEntity.ok(token);
+        } catch (Exception e) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.UNAUTHORIZED, "Refresh token inválido o expirado");
+        }
+    }
+
+    @PostMapping("/api/logout")
+    public org.springframework.http.ResponseEntity<Void> logout(
+            @RequestBody com.patitosrl.gateway.dto.AuthDtos.LogoutRequest req) {
+        RestClient restClient = RestClient.create();
+
+        String formData = "client_id=" + CLIENT_ID +
+                "&client_secret=" + CLIENT_SECRET +
+                "&refresh_token=" + URLEncoder.encode(req.refreshToken(), StandardCharsets.UTF_8);
+
+        try {
+            restClient.post()
+                    .uri("http://keycloak:8080/realms/patito/protocol/openid-connect/logout")
+                    .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                    .body(formData)
+                    .retrieve()
+                    .toBodilessEntity();
+        } catch (Exception ignored) { }
+        return org.springframework.http.ResponseEntity.noContent().build();
+    }
+}
+</file>
+
+<file path="api-gateway/pom.xml">
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.patitosrl</groupId>
+        <artifactId>proyecto-patito</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>api-gateway</artifactId>
+    <name>api-gateway</name>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-gateway</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
+        </dependency>
+
+        <!-- Swagger / OpenAPI para WebFlux (Gateway reactivo) -->
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webflux-ui</artifactId>
+            <version>2.5.0</version>
+        </dependency>
+    </dependencies>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-dependencies</artifactId>
+                <version>${spring-cloud.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+</project>
+</file>
+
+<file path="ms-clientes/Dockerfile">
+# ==========================================
+# Stage 1: Build
+# ==========================================
+FROM maven:3.9.6-eclipse-temurin-21-alpine AS build
+
+WORKDIR /app
+
+COPY pom.xml ./
+COPY commons-geo/pom.xml ./commons-geo/
+COPY ms-clientes/pom.xml ./ms-clientes/
+COPY ms-tecnicos/pom.xml ./ms-tecnicos/
+COPY ms-solicitudes/pom.xml ./ms-solicitudes/
+COPY api-gateway/pom.xml ./api-gateway/
+
+COPY commons-geo/src ./commons-geo/src
+COPY ms-clientes/src ./ms-clientes/src
+
+RUN mvn clean package -pl ms-clientes -am -DskipTests
+
+# ==========================================
+# Stage 2: Runtime
+# ==========================================
+FROM eclipse-temurin:21-jre-alpine AS final
+
+WORKDIR /app
+
+# Creamos el grupo y usuario
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+
+# ==========================================
+# CAMBIO CLAVE: Creamos la carpeta data y le damos permisos al usuario
+# ==========================================
+RUN mkdir -p /app/data && chown -R appuser:appgroup /app/data
+
+COPY --from=build --chown=appuser:appgroup /app/ms-clientes/target/ms-clientes-1.0.0-SNAPSHOT.jar /app/app.jar
+
+USER appuser
+
+EXPOSE 41074
+
+ENTRYPOINT [ "java", "-jar", "app.jar" ]
+</file>
+
+<file path="ms-clientes/pom.xml">
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.patitosrl</groupId>
+        <artifactId>proyecto-patito</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>ms-clientes</artifactId>
+    <name>ms-clientes</name>
+    <description>Microservicio de gestión de clientes</description>
+
+    <dependencies>
+        <!-- Spring Web -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <!-- Spring Data JPA -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-jpa</artifactId>
+        </dependency>
+
+        <!-- Base de Datos H2 -->
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!-- Validaciones -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
+        </dependency>
+
+        <!-- Swagger / OpenAPI -->
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+            <version>2.5.0</version>
+        </dependency>
+
+        <!-- Seguridad -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
+        </dependency>
+
+        <!-- WebClient para llamar a Keycloak -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-webflux</artifactId>
+        </dependency>
+
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+</project>
+</file>
+
+<file path="ms-solicitudes/src/main/java/com/patitosrl/ms_solicitudes/business/models/HistorialEstado.java">
+package com.patitosrl.ms_solicitudes.business.models;
+
+import java.time.LocalDateTime;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Entity
+@Table(name = "historial_estados")
+@Getter
+@Setter
+@NoArgsConstructor
+public class HistorialEstado {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(name = "solicitud_id", nullable = false)
+    private Long solicitudId;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "estado_anterior", length = 20)
+    private EstadoSolicitud estadoAnterior;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "estado_nuevo", nullable = false, length = 20)
+    private EstadoSolicitud estadoNuevo;
+
+    @Column(nullable = false)
+    private LocalDateTime timestamp;
+
+    @Column(length = 500)
+    private String observaciones;
+
+    public HistorialEstado(Long solicitudId, EstadoSolicitud anterior, EstadoSolicitud nuevo, String obs) {
+        this.solicitudId = solicitudId;
+        this.estadoAnterior = anterior;
+        this.estadoNuevo = nuevo;
+        this.timestamp = LocalDateTime.now();
+        this.observaciones = obs;
     }
 }
 </file>
@@ -3246,1225 +4306,6 @@ public class AsignacionService {
 }
 </file>
 
-<file path="ms-solicitudes/src/main/java/com/patitosrl/ms_solicitudes/web/controllers/AsignacionController.java">
-package com.patitosrl.ms_solicitudes.web.controllers;
-
-import java.util.List;
-
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
-
-
-import com.patitosrl.ms_solicitudes.business.models.Solicitud;
-import com.patitosrl.ms_solicitudes.business.services.AsignacionService;
-import com.patitosrl.ms_solicitudes.web.dtos.CandidatoResponse;
-import com.patitosrl.ms_solicitudes.web.dtos.ElegirTecnicoRequest;
-import com.patitosrl.ms_solicitudes.web.dtos.ElegirTecnicoResponse;
-import com.patitosrl.ms_solicitudes.web.dtos.SolicitudResponse;
-
-import io.swagger.v3.oas.annotations.Operation;
-import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
-
-
-
-@RestController
-@RequestMapping("/api/solicitudes")
-@RequiredArgsConstructor
-public class AsignacionController {
-
-    private final AsignacionService service;
-
-    /** 
-     * Probar el filtro de cercanía (RN-9) y el cálculo del costo (RN-11) 
-     * ANTES de crear una solicitud real.
-     */
-    @PostMapping("/elegir")
-    public ResponseEntity<ElegirTecnicoResponse> elegir(@Valid @RequestBody ElegirTecnicoRequest req) {
-        return ResponseEntity.ok(service.elegirTecnico(req));
-    }
-
-    /** Enviar la oferta al técnico. Pasa a OFERTADA con vencimiento de 15 min (RN-3). */
-    @PostMapping("/{id}/ofertar/{tecnicoId}")
-    public ResponseEntity<SolicitudResponse> ofertar(@PathVariable Long id,
-                                                     @PathVariable String tecnicoId) {
-        Solicitud s = service.ofertar(id, tecnicoId);
-        return ResponseEntity.ok(SolicitudResponse.desde(s));
-    }
-
-    /** El técnico acepta la oferta. Calcula costo final y pasa a ASIGNADA. */
-    @PostMapping("/{id}/aceptar/{tecnicoId}")
-    public ResponseEntity<SolicitudResponse> aceptar(@PathVariable Long id,
-                                                     @PathVariable String tecnicoId) {
-        return ResponseEntity.ok(SolicitudResponse.desde(service.aceptar(id, tecnicoId)));
-    }
-
-    /** El técnico rechaza la oferta. La solicitud vuelve a PENDIENTE. */
-    @PostMapping("/{id}/rechazar/{tecnicoId}")
-    public ResponseEntity<SolicitudResponse> rechazar(@PathVariable Long id,
-                                                      @PathVariable String tecnicoId,
-                                                      @RequestParam(required = false) String motivo) {
-        return ResponseEntity.ok(SolicitudResponse.desde(service.rechazar(id, tecnicoId, motivo)));
-    }
-
-        @GetMapping("/{id}/candidatos")
-    @Operation(summary = "Listar técnicos candidatos para una solicitud existente")
-    public ResponseEntity<List<CandidatoResponse>> candidatos(@PathVariable Long id) {
-        return ResponseEntity.ok(service.listarCandidatos(id));
-    }
-    
-
-}
-</file>
-
-<file path="ms-solicitudes/src/main/java/com/patitosrl/ms_solicitudes/web/dtos/ElegirTecnicoResponse.java">
-package com.patitosrl.ms_solicitudes.web.dtos;
-
-import com.patitosrl.ms_solicitudes.business.services.costo.CostoVisitaStrategy;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-
-@Data
-@AllArgsConstructor
-public class ElegirTecnicoResponse {
-    private String tecnicoId;
-    private String nombre;
-    private Double distanciaKm;
-    private Integer tiempoEstimadoMin;
-    private CostoDetalle costo;
-
-    /** Constructor que convierte directamente el resultado del Strategy al DTO */
-    public ElegirTecnicoResponse(String tecnicoId, String nombre, Double distanciaKm,
-                                 Integer tiempoEstimadoMin, CostoVisitaStrategy.ResultadoCosto r) {
-        this(tecnicoId, nombre, distanciaKm, tiempoEstimadoMin,
-             new CostoDetalle(r.estrategia(), r.costoBase(), r.recargo(), r.total()));
-    }
-
-    @Data 
-    @AllArgsConstructor
-    public static class CostoDetalle {
-        private String estrategia;
-        private double costoBase;
-        private double recargo;
-        private double total;
-    }
-}
-</file>
-
-<file path="ms-solicitudes/src/main/java/com/patitosrl/ms_solicitudes/web/dtos/SolicitudRequest.java">
-package com.patitosrl.ms_solicitudes.web.dtos;
-
-import java.time.LocalDateTime;
-import java.util.List;
-
-import com.patitosrl.ms_solicitudes.business.models.Prioridad;
-import com.patitosrl.ms_solicitudes.business.models.TipoServicio;
-
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotEmpty;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
-import lombok.Data;
-
-@Data
-public class SolicitudRequest {
-
-    @NotNull(message = "El ID del cliente es obligatorio")
-    private Long clienteId;
-
-    @NotBlank(message = "El domicilio es obligatorio")
-    private String domicilio;
-
-    @NotEmpty(message = "Debe indicar al menos un tipo de servicio")
-    private List<TipoServicio> tiposServicio;
-
-    @NotBlank(message = "La marca es obligatoria")
-    private String marca;
-
-    @NotBlank(message = "El modelo es obligatorio")
-    private String modelo;
-
-    @NotBlank(message = "La descripción es obligatoria")
-    @Size(max = 500)
-    private String descripcion;
-
-    @NotNull(message = "La especialidad es obligatoria")
-    private Long especialidadId; // <-- CLAVE
-
-    @NotNull(message = "La prioridad es obligatoria")
-    private Prioridad prioridad;
-
-    @NotNull(message = "La fecha y hora programada es obligatoria")
-    private LocalDateTime fechaHoraProgramada;
-
-    private Boolean esFeriado;
-}
-</file>
-
-<file path="ms-solicitudes/src/test/java/com/patitosrl/ms_solicitudes/business/services/AsignacionServiceTest.java">
-package com.patitosrl.ms_solicitudes.business.services;
-
-import com.patitosrl.geo.GeoService;
-import com.patitosrl.ms_solicitudes.business.exceptions.ReglaDeNegocioException;
-import com.patitosrl.ms_solicitudes.business.models.EstadoSolicitud;
-import com.patitosrl.ms_solicitudes.business.models.Solicitud;
-import com.patitosrl.ms_solicitudes.business.models.TecnicoRemoto;
-import com.patitosrl.ms_solicitudes.infrastructure.clients.TecnicosClient;
-import com.patitosrl.ms_solicitudes.infrastructure.repositories.HistorialEstadoRepository;
-import com.patitosrl.ms_solicitudes.infrastructure.repositories.SolicitudRepository;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-
-import java.util.List;
-import java.util.Optional;
-
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.*;
-
-@ExtendWith(MockitoExtension.class)
-class AsignacionServiceTest {
-
-    @Mock private SolicitudRepository solicitudes;
-    @Mock private HistorialEstadoRepository historial;
-    @Mock private TecnicosClient tecnicos;
-    @Mock private GeoService geoService;
-    @Mock private CostoService costoService;
-
-    @InjectMocks
-    private AsignacionService service;
-
-    @Test
-    void debeLanzarExcepcionSiElTecnicoNoEstaDisponible() {
-        Long solicitudId = 1L;
-        String tecnicoId = "2";
-
-        Solicitud s = new Solicitud();
-        s.setEstado(EstadoSolicitud.PENDIENTE);
-        when(solicitudes.findById(solicitudId)).thenReturn(Optional.of(s));
-
-        TecnicoRemoto t = new TecnicoRemoto();
-        t.setId(tecnicoId);
-        t.setDisponible(false);
-        when(tecnicos.buscarPorId(tecnicoId)).thenReturn(t);
-
-        assertThrows(ReglaDeNegocioException.class, () -> service.ofertar(solicitudId, tecnicoId));
-    }
-
-    @Test
-    void debeLanzarExcepcionSiElTecnicoYaTieneUnaSolicitudEnCurso() {
-        Long solicitudId = 1L;
-        String tecnicoId = "2";
-
-        Solicitud s = new Solicitud();
-        s.setEstado(EstadoSolicitud.PENDIENTE);
-        when(solicitudes.findById(solicitudId)).thenReturn(Optional.of(s));
-
-        TecnicoRemoto t = new TecnicoRemoto();
-        t.setId(tecnicoId);
-        t.setDisponible(true);
-        when(tecnicos.buscarPorId(tecnicoId)).thenReturn(t);
-
-        when(solicitudes.findByTecnicoIdAndEstado(tecnicoId, EstadoSolicitud.EN_CURSO))
-                .thenReturn(List.of(new Solicitud()));
-
-        assertThrows(ReglaDeNegocioException.class, () -> service.ofertar(solicitudId, tecnicoId));
-    }
-}
-</file>
-
-<file path="ms-solicitudes/src/test/java/com/patitosrl/ms_solicitudes/business/services/OfertaSchedulerTest.java">
-package com.patitosrl.ms_solicitudes.business.services;
-
-import com.patitosrl.ms_solicitudes.business.models.EstadoSolicitud;
-import com.patitosrl.ms_solicitudes.business.models.Solicitud;
-import com.patitosrl.ms_solicitudes.infrastructure.repositories.HistorialEstadoRepository;
-import com.patitosrl.ms_solicitudes.infrastructure.repositories.SolicitudRepository;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-
-import java.time.LocalDateTime;
-import java.util.List;
-
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.*;
-
-@ExtendWith(MockitoExtension.class)
-class OfertaSchedulerTest {
-
-    @Mock private SolicitudRepository solicitudes;
-    @Mock private HistorialEstadoRepository historial;
-
-    @InjectMocks
-    private OfertaScheduler scheduler;
-
-    @Test
-    void debeDevolverAPendienteLasOfertasVencidas() {
-        Solicitud vencida = new Solicitud();
-        vencida.setId(1L);
-        vencida.setEstado(EstadoSolicitud.OFERTADA);
-        vencida.setTecnicoId("10");              // ← antes: 10L
-        vencida.setTecnicoNombre("Juan Perez");
-        vencida.setOfertaExpira(LocalDateTime.now().minusMinutes(1));
-
-        when(solicitudes.findByEstadoAndOfertaExpiraBefore(eq(EstadoSolicitud.OFERTADA), any(LocalDateTime.class)))
-                .thenReturn(List.of(vencida));
-
-        scheduler.vencerOfertas();
-
-        verify(solicitudes, times(1)).save(argThat(s ->
-            s.getEstado() == EstadoSolicitud.PENDIENTE &&
-            s.getTecnicoId() == null &&
-            s.getOfertaExpira() == null
-        ));
-        verify(historial, times(1)).save(any());
-    }
-
-    @Test
-    void noDebeHacerNadaSiNoHayOfertasVencidas() {
-        when(solicitudes.findByEstadoAndOfertaExpiraBefore(eq(EstadoSolicitud.OFERTADA), any(LocalDateTime.class)))
-                .thenReturn(List.of());
-
-        scheduler.vencerOfertas();
-
-        verify(solicitudes, never()).save(any());
-        verify(historial, never()).save(any());
-    }
-}
-</file>
-
-<file path="ms-solicitudes/Dockerfile">
-# ==========================================
-# Stage 1: Build
-# ==========================================
-FROM maven:3.9.6-eclipse-temurin-21-alpine AS build
-
-WORKDIR /app
-
-COPY pom.xml ./
-COPY commons-geo/pom.xml ./commons-geo/
-COPY ms-clientes/pom.xml ./ms-clientes/
-COPY ms-tecnicos/pom.xml ./ms-tecnicos/
-COPY ms-solicitudes/pom.xml ./ms-solicitudes/
-COPY api-gateway/pom.xml ./api-gateway/
-
-COPY commons-geo/src ./commons-geo/src
-COPY ms-solicitudes/src ./ms-solicitudes/src
-
-RUN mvn clean package -pl ms-solicitudes -am -DskipTests
-
-# ==========================================
-# Stage 2: Runtime
-# ==========================================
-FROM eclipse-temurin:21-jre-alpine AS final
-
-WORKDIR /app
-
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup
-
-COPY --from=build --chown=appuser:appgroup /app/ms-solicitudes/target/ms-solicitudes-1.0.0-SNAPSHOT.jar /app/app.jar
-
-USER appuser
-
-EXPOSE 41072
-
-ENTRYPOINT [ "java", "-jar", "app.jar" ]
-</file>
-
-<file path="ms-tecnicos/src/main/java/com/patitosrl/ms_tecnicos/business/exceptions/TecnicoNoEncontradoException.java">
-package com.patitosrl.ms_tecnicos.business.exceptions;
-
-public class TecnicoNoEncontradoException extends RuntimeException {
-    public TecnicoNoEncontradoException(String id) {
-        super("No existe el técnico con id " + id);
-    }
-}
-</file>
-
-<file path="ms-tecnicos/src/main/java/com/patitosrl/ms_tecnicos/business/models/Tecnico.java">
-package com.patitosrl.ms_tecnicos.business.models;
-
-import java.util.List;
-
-import jakarta.persistence.*;
-import lombok.*;
-
-@Entity
-@Table(name = "tecnicos")
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
-public class Tecnico {
-
-    @Id
-    @Column(length = 36, nullable = false) // UUID de Keycloak
-    private String id;
-
-    @Column(nullable = false, length = 60)
-    private String nombre;
-
-    @Column(nullable = false, length = 60)
-    private String apellido;
-
-    @Column(nullable = false, unique = true, length = 20)
-    private String dni;
-
-    @Column(nullable = false)
-    private Double latitud;
-
-    @Column(nullable = false)
-    private Double longitud;
-
-    @Column(nullable = false)
-    private Boolean disponible;
-
-    @ManyToMany(fetch = FetchType.EAGER)
-    @JoinTable(
-        name = "tecnico_certificacion",
-        joinColumns = @JoinColumn(name = "tecnico_id"),
-        inverseJoinColumns = @JoinColumn(name = "certificacion_id")
-    )
-    private List<Certificacion> certificaciones;
-
-    @ManyToMany(fetch = FetchType.EAGER)
-    @JoinTable(
-        name = "tecnico_zona",
-        joinColumns = @JoinColumn(name = "tecnico_id"),
-        inverseJoinColumns = @JoinColumn(name = "zona_id")
-    )
-    private List<ZonaCobertura> zonasCobertura;
-}
-</file>
-
-<file path="ms-tecnicos/src/main/java/com/patitosrl/ms_tecnicos/infrastructure/config/DataLoader.java">
-package com.patitosrl.ms_tecnicos.infrastructure.config;
-
-import java.util.List;
-
-import org.springframework.boot.CommandLineRunner;
-import org.springframework.stereotype.Component;
-
-import com.patitosrl.ms_tecnicos.business.models.Certificacion;
-import com.patitosrl.ms_tecnicos.business.models.Tecnico;
-import com.patitosrl.ms_tecnicos.business.models.ZonaCobertura;
-import com.patitosrl.ms_tecnicos.infrastructure.repositories.CertificacionRepository;
-import com.patitosrl.ms_tecnicos.infrastructure.repositories.TecnicoRepository;
-import com.patitosrl.ms_tecnicos.infrastructure.repositories.ZonaCoberturaRepository;
-
-import lombok.RequiredArgsConstructor;
-
-@Component
-@RequiredArgsConstructor
-public class DataLoader implements CommandLineRunner {
-
-    private final TecnicoRepository tecnicos;
-    private final CertificacionRepository certificaciones;
-    private final ZonaCoberturaRepository zonas;
-
-    @Override
-    public void run(String... args) {
-        if (tecnicos.count() > 0) return;
-
-        Certificacion redes = certificaciones.save(new Certificacion(null, "Redes"));
-        Certificacion impresoras = certificaciones.save(new Certificacion(null, "Impresoras"));
-        Certificacion notebooks = certificaciones.save(new Certificacion(null, "Notebooks Apple"));
-
-        ZonaCobertura centro = zonas.save(new ZonaCobertura(null, "Centro"));
-        ZonaCobertura nuevaCordoba = zonas.save(new ZonaCobertura(null, "Nueva Córdoba"));
-
-        tecnicos.saveAll(List.of(
-            Tecnico.builder()
-                .id("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
-                .nombre("Juan").apellido("Perez").dni("11111111")
-                .latitud(-31.415).longitud(-64.190).disponible(true)
-                .certificaciones(List.of(redes, impresoras))
-                .zonasCobertura(List.of(centro, nuevaCordoba)).build(),
-            Tecnico.builder()
-                .id("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb")
-                .nombre("Ana").apellido("Gomez").dni("22222222")
-                .latitud(-31.430).longitud(-64.180).disponible(true)
-                .certificaciones(List.of(impresoras, notebooks))
-                .zonasCobertura(List.of(centro)).build(),
-            Tecnico.builder()
-                .id("cccccccc-cccc-cccc-cccc-cccccccccccc")
-                .nombre("Lejano").apellido("Lopez").dni("33333333")
-                .latitud(-31.424).longitud(-64.500).disponible(true)
-                .certificaciones(List.of(redes))
-                .zonasCobertura(List.of(centro)).build()
-        ));
-        System.out.println("Técnicos de prueba cargados.");
-    }
-}
-</file>
-
-<file path="ms-tecnicos/src/main/java/com/patitosrl/ms_tecnicos/infrastructure/config/SecurityConfig.java">
-package com.patitosrl.ms_tecnicos.infrastructure.config;
-
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.security.config.Customizer;
-import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
-import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
-import org.springframework.security.web.SecurityFilterChain;
-
-@Configuration
-@EnableWebSecurity
-@EnableMethodSecurity // Permite usar @PreAuthorize("hasRole('ADMIN')") en los controllers
-public class SecurityConfig {
-
-    @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http.csrf(csrf -> csrf.disable())
-            .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll() // Habilita Swagger sin auth
-                .anyRequest().authenticated()
-                
-            )
-            .oauth2ResourceServer(oauth2 -> oauth2
-                .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthConverter()))
-            );
-        return http.build();
-    }
-
-    @Bean
-    public JwtAuthenticationConverter jwtAuthConverter() {
-        JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
-        converter.setJwtGrantedAuthoritiesConverter(jwt -> {
-            Map<String, Object> realmAccess = jwt.getClaim("realm_access");
-            if (realmAccess == null || !realmAccess.containsKey("roles")) {
-                return List.of();
-            }
-            Collection<String> roles = (Collection<String>) realmAccess.get("roles");
-            return roles.stream()
-                    .map(role -> new SimpleGrantedAuthority("ROLE_" + role.toUpperCase()))
-                    .collect(Collectors.toList());
-        });
-        return converter;
-    }
-}
-</file>
-
-<file path="ms-tecnicos/src/main/java/com/patitosrl/ms_tecnicos/infrastructure/repositories/TecnicoRepository.java">
-package com.patitosrl.ms_tecnicos.infrastructure.repositories;
-
-import java.util.List;
-
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
-
-import com.patitosrl.ms_tecnicos.business.models.Tecnico;
-
-@Repository
-public interface TecnicoRepository extends JpaRepository<Tecnico, String> {
-    List<Tecnico> findByDisponibleTrue();
-    boolean existsByDni(String dni);
-}
-</file>
-
-<file path="ms-tecnicos/src/main/java/com/patitosrl/ms_tecnicos/web/controllers/TecnicoController.java">
-package com.patitosrl.ms_tecnicos.web.controllers;
-
-import java.util.List;
-
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.web.bind.annotation.*;
-
-import com.patitosrl.ms_tecnicos.business.models.Tecnico;
-import com.patitosrl.ms_tecnicos.business.services.TecnicoService;
-import com.patitosrl.ms_tecnicos.web.dtos.TecnicoRequest;
-import com.patitosrl.ms_tecnicos.web.dtos.TecnicoResponse;
-import com.patitosrl.ms_tecnicos.web.dtos.TecnicoSyncRequest;
-
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
-
-@RestController
-@RequestMapping("/api/tecnicos")
-@RequiredArgsConstructor
-@Tag(name = "Gestión de Técnicos", description = "Endpoints para administrar los técnicos")
-public class TecnicoController {
-
-    private final TecnicoService service;
-
-    @GetMapping
-    @Operation(summary = "Listar todos los técnicos")
-    public ResponseEntity<List<TecnicoResponse>> listar() {
-        return ResponseEntity.ok(service.listar().stream().map(TecnicoResponse::desde).toList());
-    }
-
-    @GetMapping("/candidatos")
-    @Operation(summary = "Buscar técnicos candidatos")
-    public ResponseEntity<List<TecnicoResponse>> buscarCandidatos(
-            @RequestParam Double lat, @RequestParam Double lon, @RequestParam String certificacion) {
-        return ResponseEntity.ok(service.buscarCandidatos(lat, lon, certificacion).stream()
-                .map(TecnicoResponse::desde).toList());
-    }
-
-    @GetMapping("/{id}")
-    @Operation(summary = "Obtener un técnico por ID (keycloakId)")
-    public ResponseEntity<TecnicoResponse> obtener(@PathVariable String id) {
-        return ResponseEntity.ok(TecnicoResponse.desde(service.obtener(id)));
-    }
-
-    @PostMapping
-    @Operation(summary = "Registrar un nuevo técnico (desde Keycloak)")
-    public ResponseEntity<TecnicoResponse> crear(@Valid @RequestBody TecnicoRequest req, @AuthenticationPrincipal Jwt jwt) {
-        String keycloakId = jwt.getSubject();
-        Tecnico t = service.crear(req, keycloakId);
-        return ResponseEntity.ok(TecnicoResponse.desde(t));
-    }
-
-    @PostMapping("/sincronizar")
-    @Operation(summary = "Sincronizar técnico desde Keycloak")
-    public ResponseEntity<TecnicoResponse> sincronizar(@RequestBody TecnicoSyncRequest req) {
-        Tecnico t = service.sincronizar(req.getKeycloakId(), req.getNombre(), req.getEmail());
-        return ResponseEntity.ok(TecnicoResponse.desde(t));
-    }
-
-    @PutMapping("/{id}")
-    @Operation(summary = "Actualizar un técnico existente")
-    public ResponseEntity<TecnicoResponse> actualizar(@PathVariable String id,
-                                                      @Valid @RequestBody TecnicoRequest req) {
-        return ResponseEntity.ok(TecnicoResponse.desde(service.actualizar(id, req)));
-    }
-
-    @PatchMapping("/{id}/disponibilidad")
-    @Operation(summary = "Cambiar disponibilidad del técnico (para aceptar/liberar ofertas)")
-    public ResponseEntity<TecnicoResponse> cambiarDisponibilidad(@PathVariable String id,
-                                                                 @RequestParam boolean disponible) {
-        return ResponseEntity.ok(TecnicoResponse.desde(service.cambiarDisponibilidad(id, disponible)));
-    }
-
-    @DeleteMapping("/{id}")
-    @Operation(summary = "Eliminar un técnico")
-    public ResponseEntity<Void> eliminar(@PathVariable String id) {
-        service.eliminar(id);
-        return ResponseEntity.noContent().build();
-    }
-
-}
-</file>
-
-<file path="ms-tecnicos/src/main/java/com/patitosrl/ms_tecnicos/web/dtos/TecnicoResponse.java">
-package com.patitosrl.ms_tecnicos.web.dtos;
-
-import java.util.List;
-
-import com.patitosrl.ms_tecnicos.business.models.Tecnico;
-
-import lombok.AllArgsConstructor;
-import lombok.Data;
-
-@Data
-@AllArgsConstructor
-public class TecnicoResponse {
-    private String id;
-    private String nombre;
-    private String apellido;
-    private String dni;
-    private Double latitud;
-    private Double longitud;
-    private Boolean disponible;
-    private List<ItemResponse> certificaciones;
-    private List<ItemResponse> zonasCobertura;
-
-    public record ItemResponse(Long id, String nombre) { }
-
-    public static TecnicoResponse desde(Tecnico t) {
-        return new TecnicoResponse(
-                t.getId(), t.getNombre(), t.getApellido(), t.getDni(),
-                t.getLatitud(), t.getLongitud(), t.getDisponible(),
-                t.getCertificaciones() == null ? List.of() : t.getCertificaciones().stream()
-                        .map(c -> new ItemResponse(c.getId(), c.getNombre())).toList(),
-                t.getZonasCobertura() == null ? List.of() : t.getZonasCobertura().stream()
-                        .map(z -> new ItemResponse(z.getId(), z.getNombre())).toList());
-    }
-}
-</file>
-
-<file path="ms-tecnicos/src/test/java/com/patitosrl/ms_tecnicos/business/services/TecnicoServiceTest.java">
-package com.patitosrl.ms_tecnicos.business.services;
-
-import java.util.List;
-
-import com.patitosrl.ms_tecnicos.business.models.Certificacion;
-import com.patitosrl.ms_tecnicos.business.models.Tecnico;
-import com.patitosrl.ms_tecnicos.infrastructure.repositories.CertificacionRepository;
-import com.patitosrl.ms_tecnicos.infrastructure.repositories.TecnicoRepository;
-import com.patitosrl.ms_tecnicos.infrastructure.repositories.ZonaCoberturaRepository;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.when;
-
-@ExtendWith(MockitoExtension.class)
-class TecnicoServiceTest {
-
-    @Mock private TecnicoRepository tecnicos;
-    @Mock private CertificacionRepository certificaciones;
-    @Mock private ZonaCoberturaRepository zonas;
-
-    private TecnicoService service;
-
-    private Tecnico juanCerca;
-    private Tecnico anaLejos;
-
-    @BeforeEach
-    void setUp() {
-        // Instanciamos el servicio con los 3 mocks
-        // (el radio de candidatos lo inyecta @Value, pero como es un test unitario, no se inyecta)
-        service = new TecnicoService(tecnicos, certificaciones, zonas);
-
-        Certificacion redes = new Certificacion(1L, "Redes");
-
-        // Técnico a 1 km aprox del centro (-31.420, -64.188) con ID String
-        juanCerca = Tecnico.builder()
-                .id("11111111-1111-1111-1111-111111111111")
-                .nombre("Juan").disponible(true)
-                .latitud(-31.415).longitud(-64.190)
-                .certificaciones(List.of(redes))
-                .build();
-
-        // Técnico a 30 km aprox (fuera del radio) con ID String
-        anaLejos = Tecnico.builder()
-                .id("22222222-2222-2222-2222-222222222222")
-                .nombre("Ana").disponible(true)
-                .latitud(-31.424).longitud(-64.500)
-                .certificaciones(List.of(redes))
-                .build();
-    }
-
-    @Test
-    void debeFiltrarTecnicosPorCertificacionYCercania() {
-        when(tecnicos.findByDisponibleTrue()).thenReturn(List.of(juanCerca, anaLejos));
-
-        List<Tecnico> resultado = service.buscarCandidatos(-31.420, -64.188, "Redes");
-
-        assertEquals(1, resultado.size());
-        assertEquals("Juan", resultado.get(0).getNombre());
-        assertFalse(resultado.stream().anyMatch(t -> t.getNombre().equals("Ana")));
-    }
-
-    @Test
-    void debeRetornarListaVaciaSiNoHayTecnicosConLaCertificacion() {
-        when(tecnicos.findByDisponibleTrue()).thenReturn(List.of(juanCerca));
-
-        List<Tecnico> resultado = service.buscarCandidatos(-31.420, -64.188, "Impresoras");
-
-        assertTrue(resultado.isEmpty());
-    }
-}
-</file>
-
-<file path="ms-tecnicos/Dockerfile">
-# ==========================================
-# Stage 1: Build
-# ==========================================
-FROM maven:3.9.6-eclipse-temurin-21-alpine AS build
-
-WORKDIR /app
-
-COPY pom.xml ./
-COPY commons-geo/pom.xml ./commons-geo/
-COPY ms-clientes/pom.xml ./ms-clientes/
-COPY ms-tecnicos/pom.xml ./ms-tecnicos/
-COPY ms-solicitudes/pom.xml ./ms-solicitudes/
-COPY api-gateway/pom.xml ./api-gateway/
-
-COPY commons-geo/src ./commons-geo/src
-COPY ms-tecnicos/src ./ms-tecnicos/src
-
-RUN mvn clean package -pl ms-tecnicos -am -DskipTests
-
-# ==========================================
-# Stage 2: Runtime
-# ==========================================
-FROM eclipse-temurin:21-jre-alpine AS final
-
-WORKDIR /app
-
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup
-
-COPY --from=build --chown=appuser:appgroup /app/ms-tecnicos/target/ms-tecnicos-1.0.0-SNAPSHOT.jar /app/app.jar
-
-USER appuser
-
-EXPOSE 41073
-
-ENTRYPOINT [ "java", "-jar", "app.jar" ]
-</file>
-
-<file path="docker-compose.yml">
-services:
-  # ==========================================
-  # KEYCLOAK (Identity Provider)
-  # ==========================================
-  keycloak:
-    image: quay.io/keycloak/keycloak:24.0.1
-    container_name: keycloak-patito
-    ports:
-      - "41090:8080"
-    environment:
-      - KEYCLOAK_ADMIN=admin
-      - KEYCLOAK_ADMIN_PASSWORD=admin
-      - KC_DB=dev-file
-      - KC_HOSTNAME_STRICT=false
-      - KC_HEALTH_ENABLED=true
-    command: start-dev
-    volumes:
-      - keycloak_data:/opt/keycloak/data
-    networks:
-      - patito-net
-    restart: unless-stopped
-
-  # ==========================================
-  # API GATEWAY (Punto de entrada único)
-  # ==========================================
-  api-gateway:
-    build:
-      context: .
-      dockerfile: api-gateway/Dockerfile
-    container_name: api-gateway
-    ports:
-      - "41071:41071"
-    environment:
-      # URLs internas de los microservicios (nombres de servicio en Docker)
-      - APP_GATEWAY_SOLICITUDES_URL=http://ms-solicitudes:41072
-      - APP_GATEWAY_TECNICOS_URL=http://ms-tecnicos:41073
-      - APP_GATEWAY_CLIENTES_URL=http://ms-clientes:41074
-      # Keycloak (puerto interno 8080, no 41090)
-      - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI=http://keycloak:8080/realms/patito
-      - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI=http://keycloak:8080/realms/patito/protocol/openid-connect/certs
-    depends_on:
-      keycloak:
-        condition: service_started
-      ms-solicitudes:
-        condition: service_started
-      ms-tecnicos:
-        condition: service_started
-      ms-clientes:
-        condition: service_started
-    networks:
-      - patito-net
-    restart: unless-stopped
-
-  # ==========================================
-  # MS-SOLICITUDES
-  # ==========================================
-  ms-solicitudes:
-    build:
-      context: .
-      dockerfile: ms-solicitudes/Dockerfile
-    container_name: ms-solicitudes
-    ports:
-      - "41072:41072"
-    environment:
-      - APP_CLIENTES_BASE_URL=http://ms-clientes:41074
-      - APP_TECNICOS_BASE_URL=http://ms-tecnicos:41073
-      - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI=http://keycloak:8080/realms/patito
-      - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI=http://keycloak:8080/realms/patito/protocol/openid-connect/certs
-    depends_on:
-      keycloak:
-        condition: service_started
-    networks:
-      - patito-net
-    restart: unless-stopped
-
-  # ==========================================
-  # MS-TECNICOS
-  # ==========================================
-  ms-tecnicos:
-    build:
-      context: .
-      dockerfile: ms-tecnicos/Dockerfile
-    container_name: ms-tecnicos
-    ports:
-      - "41073:41073"
-    environment:
-      - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI=http://keycloak:8080/realms/patito
-      - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI=http://keycloak:8080/realms/patito/protocol/openid-connect/certs
-    depends_on:
-      keycloak:
-        condition: service_started
-    networks:
-      - patito-net
-    restart: unless-stopped
-
-  # ==========================================
-  # MS-CLIENTES
-  # ==========================================
-  ms-clientes:
-    build:
-      context: .
-      dockerfile: ms-clientes/Dockerfile
-    container_name: ms-clientes
-    ports:
-      - "41074:41074"
-    environment:
-      - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI=http://keycloak:8080/realms/patito
-      - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI=http://keycloak:8080/realms/patito/protocol/openid-connect/certs
-    depends_on:
-      keycloak:
-        condition: service_started
-    networks:
-      - patito-net
-    restart: unless-stopped
-
-# ==========================================
-# VOLÚMENES Y REDES
-# ==========================================
-volumes:
-  keycloak_data:
-
-networks:
-  patito-net:
-    driver: bridge
-</file>
-
-<file path="api-gateway/pom.xml">
-<?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
-    <modelVersion>4.0.0</modelVersion>
-
-    <parent>
-        <groupId>com.patitosrl</groupId>
-        <artifactId>proyecto-patito</artifactId>
-        <version>1.0.0-SNAPSHOT</version>
-    </parent>
-
-    <artifactId>api-gateway</artifactId>
-    <name>api-gateway</name>
-
-    <dependencies>
-        <dependency>
-            <groupId>org.springframework.cloud</groupId>
-            <artifactId>spring-cloud-starter-gateway</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-security</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
-        </dependency>
-
-        <!-- Swagger / OpenAPI para WebFlux (Gateway reactivo) -->
-        <dependency>
-            <groupId>org.springdoc</groupId>
-            <artifactId>springdoc-openapi-starter-webflux-ui</artifactId>
-            <version>2.5.0</version>
-        </dependency>
-    </dependencies>
-
-    <dependencyManagement>
-        <dependencies>
-            <dependency>
-                <groupId>org.springframework.cloud</groupId>
-                <artifactId>spring-cloud-dependencies</artifactId>
-                <version>${spring-cloud.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
-
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-            </plugin>
-            <plugin>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-maven-plugin</artifactId>
-            </plugin>
-        </plugins>
-    </build>
-</project>
-</file>
-
-<file path="ms-clientes/src/main/java/com/patitosrl/ms_clientes/web/controllers/ClienteController.java">
-package com.patitosrl.ms_clientes.web.controllers;
-
-import java.util.List;
-
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
-import com.patitosrl.ms_clientes.business.models.Cliente;
-import com.patitosrl.ms_clientes.business.services.ClienteService;
-import com.patitosrl.ms_clientes.web.dtos.ClienteRequest;
-import com.patitosrl.ms_clientes.web.dtos.ClienteResponse;
-import com.patitosrl.ms_clientes.web.dtos.ClienteSyncRequest;
-import com.patitosrl.ms_clientes.web.dtos.CoordenadasRequest;
-
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
-
-@RestController
-@RequestMapping("/api/clientes")
-@RequiredArgsConstructor
-@Tag(name = "Gestión de Clientes", description = "Endpoints para administrar los clientes")
-public class ClienteController {
-
-    private final ClienteService service;
-
-    @GetMapping
-    @Operation(summary = "Listar todos los clientes")
-    public ResponseEntity<List<ClienteResponse>> listar() {
-        return ResponseEntity.ok(service.listar().stream().map(ClienteResponse::desde).toList());
-    }
-
-    @GetMapping("/{id}")
-    @Operation(summary = "Obtener un cliente por ID (keycloakId)")
-    public ResponseEntity<ClienteResponse> obtener(@PathVariable String id) {
-        return ResponseEntity.ok(ClienteResponse.desde(service.obtener(id)));
-    }
-
-    @PostMapping
-    @Operation(summary = "Registrar un nuevo cliente en Keycloak y H2")
-    public ResponseEntity<ClienteResponse> crear(@Valid @RequestBody ClienteRequest req) {
-        // El servicio ahora se encarga de crear en Keycloak y guardar el UUID
-        Cliente c = service.crear(req);
-        return ResponseEntity.ok(ClienteResponse.desde(c));
-    }
-
-    @PostMapping("/sincronizar")
-    @Operation(summary = "Sincronizar cliente desde Keycloak")
-    public ResponseEntity<ClienteResponse> sincronizar(@RequestBody ClienteSyncRequest req) {
-        Cliente c = service.sincronizar(req.getKeycloakId(), req.getNombre(), req.getEmail());
-        return ResponseEntity.ok(ClienteResponse.desde(c));
-    }
-
-
-        @PutMapping("/{id}")
-    @Operation(summary = "Actualizar un cliente existente")
-    public ResponseEntity<ClienteResponse> actualizar(@PathVariable String id,
-                                                      @Valid @RequestBody ClienteRequest req) {
-        return ResponseEntity.ok(ClienteResponse.desde(service.actualizar(id, req)));
-    }
-
-    @PatchMapping("/{id}/coordenadas")
-    @Operation(summary = "Actualizar solo la ubicación (lat/lon) del cliente")
-    public ResponseEntity<ClienteResponse> actualizarUbicacion(@PathVariable String id,
-                                                               @Valid @RequestBody CoordenadasRequest req) {
-        return ResponseEntity.ok(ClienteResponse.desde(
-                service.actualizarUbicacion(id, req.getLatitud(), req.getLongitud())));
-    }
-
-    @DeleteMapping("/{id}")
-    @Operation(summary = "Eliminar un cliente")
-    public ResponseEntity<Void> eliminar(@PathVariable String id) {
-        service.eliminar(id);
-        return ResponseEntity.noContent().build();
-    }
-}
-</file>
-
-<file path="ms-clientes/src/main/resources/application.yml">
-server:
-  port: 41074
-
-spring:
-  security:
-    oauth2:
-      resourceserver:
-        jwt:
-          issuer-uri: http://localhost:41090/realms/patito
-          jwk-set-uri: http://localhost:41090/realms/patito/protocol/openid-connect/certs
-  application:
-    name: ms-clientes
-  datasource:
-    url: jdbc:h2:mem:clientes;DB_CLOSE_DELAY=-1
-    username: sa
-    password:
-  jpa:
-    hibernate:
-      ddl-auto: create-drop
-    show-sql: false
-  h2:
-    console:
-      enabled: true
-      path: /h2-console
-
-springdoc:
-  swagger-ui:
-    path: /swagger-ui.html
-  api-docs:
-    path: /v3/api-docs
-</file>
-
-<file path="ms-clientes/pom.xml">
-<?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
-    <modelVersion>4.0.0</modelVersion>
-
-    <parent>
-        <groupId>com.patitosrl</groupId>
-        <artifactId>proyecto-patito</artifactId>
-        <version>1.0.0-SNAPSHOT</version>
-    </parent>
-
-    <artifactId>ms-clientes</artifactId>
-    <name>ms-clientes</name>
-    <description>Microservicio de gestión de clientes</description>
-
-    <dependencies>
-        <!-- Spring Web -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
-        </dependency>
-
-        <!-- Spring Data JPA -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-jpa</artifactId>
-        </dependency>
-
-        <!-- Base de Datos H2 -->
-        <dependency>
-            <groupId>com.h2database</groupId>
-            <artifactId>h2</artifactId>
-            <scope>runtime</scope>
-        </dependency>
-
-        <!-- Validaciones -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-validation</artifactId>
-        </dependency>
-
-        <!-- Swagger / OpenAPI -->
-        <dependency>
-            <groupId>org.springdoc</groupId>
-            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
-            <version>2.5.0</version>
-        </dependency>
-
-        <!-- Seguridad -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-security</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
-        </dependency>
-
-        <!-- WebClient para llamar a Keycloak -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-webflux</artifactId>
-        </dependency>
-
-    </dependencies>
-
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-            </plugin>
-            <plugin>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-maven-plugin</artifactId>
-            </plugin>
-        </plugins>
-    </build>
-</project>
-</file>
-
-<file path="ms-solicitudes/src/main/java/com/patitosrl/ms_solicitudes/business/models/HistorialEstado.java">
-package com.patitosrl.ms_solicitudes.business.models;
-
-import java.time.LocalDateTime;
-
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-
-@Entity
-@Table(name = "historial_estados")
-@Getter
-@Setter
-@NoArgsConstructor
-public class HistorialEstado {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
-    @Column(name = "solicitud_id", nullable = false)
-    private Long solicitudId;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "estado_anterior", length = 20)
-    private EstadoSolicitud estadoAnterior;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "estado_nuevo", nullable = false, length = 20)
-    private EstadoSolicitud estadoNuevo;
-
-    @Column(nullable = false)
-    private LocalDateTime timestamp;
-
-    @Column(length = 500)
-    private String observaciones;
-
-    public HistorialEstado(Long solicitudId, EstadoSolicitud anterior, EstadoSolicitud nuevo, String obs) {
-        this.solicitudId = solicitudId;
-        this.estadoAnterior = anterior;
-        this.estadoNuevo = nuevo;
-        this.timestamp = LocalDateTime.now();
-        this.observaciones = obs;
-    }
-}
-</file>
-
 <file path="ms-solicitudes/src/main/java/com/patitosrl/ms_solicitudes/infrastructure/clients/ClientesClient.java">
 package com.patitosrl.ms_solicitudes.infrastructure.clients;
 
@@ -4606,6 +4447,83 @@ public interface SolicitudRepository extends JpaRepository<Solicitud, Long> {
 }
 </file>
 
+<file path="ms-solicitudes/src/main/java/com/patitosrl/ms_solicitudes/web/controllers/AsignacionController.java">
+package com.patitosrl.ms_solicitudes.web.controllers;
+
+import java.util.List;
+
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+
+import com.patitosrl.ms_solicitudes.business.models.Solicitud;
+import com.patitosrl.ms_solicitudes.business.services.AsignacionService;
+import com.patitosrl.ms_solicitudes.web.dtos.CandidatoResponse;
+import com.patitosrl.ms_solicitudes.web.dtos.ElegirTecnicoRequest;
+import com.patitosrl.ms_solicitudes.web.dtos.ElegirTecnicoResponse;
+import com.patitosrl.ms_solicitudes.web.dtos.SolicitudResponse;
+
+import io.swagger.v3.oas.annotations.Operation;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+
+
+
+@RestController
+@RequestMapping("/api/solicitudes")
+@RequiredArgsConstructor
+public class AsignacionController {
+
+    private final AsignacionService service;
+
+    /** 
+     * Probar el filtro de cercanía (RN-9) y el cálculo del costo (RN-11) 
+     * ANTES de crear una solicitud real.
+     */
+    @PostMapping("/elegir")
+    public ResponseEntity<ElegirTecnicoResponse> elegir(@Valid @RequestBody ElegirTecnicoRequest req) {
+        return ResponseEntity.ok(service.elegirTecnico(req));
+    }
+
+    /** Enviar la oferta al técnico. Pasa a OFERTADA con vencimiento de 15 min (RN-3). */
+    @PostMapping("/{id}/ofertar/{tecnicoId}")
+    public ResponseEntity<SolicitudResponse> ofertar(@PathVariable Long id,
+                                                     @PathVariable String tecnicoId) {
+        Solicitud s = service.ofertar(id, tecnicoId);
+        return ResponseEntity.ok(SolicitudResponse.desde(s));
+    }
+
+    /** El técnico acepta la oferta. Calcula costo final y pasa a ASIGNADA. */
+    @PostMapping("/{id}/aceptar/{tecnicoId}")
+    public ResponseEntity<SolicitudResponse> aceptar(@PathVariable Long id,
+                                                     @PathVariable String tecnicoId) {
+        return ResponseEntity.ok(SolicitudResponse.desde(service.aceptar(id, tecnicoId)));
+    }
+
+    /** El técnico rechaza la oferta. La solicitud vuelve a PENDIENTE. */
+    @PostMapping("/{id}/rechazar/{tecnicoId}")
+    public ResponseEntity<SolicitudResponse> rechazar(@PathVariable Long id,
+                                                      @PathVariable String tecnicoId,
+                                                      @RequestParam(required = false) String motivo) {
+        return ResponseEntity.ok(SolicitudResponse.desde(service.rechazar(id, tecnicoId, motivo)));
+    }
+
+        @GetMapping("/{id}/candidatos")
+    @Operation(summary = "Listar técnicos candidatos para una solicitud existente")
+    public ResponseEntity<List<CandidatoResponse>> candidatos(@PathVariable Long id) {
+        return ResponseEntity.ok(service.listarCandidatos(id));
+    }
+    
+
+}
+</file>
+
 <file path="ms-solicitudes/src/main/java/com/patitosrl/ms_solicitudes/web/dtos/ElegirTecnicoRequest.java">
 package com.patitosrl.ms_solicitudes.web.dtos;
 
@@ -4627,6 +4545,51 @@ public class ElegirTecnicoRequest {
     @NotNull private Double longitud;
     @NotNull private LocalDateTime fechaHora;
     @NotNull private Prioridad prioridad;
+}
+</file>
+
+<file path="ms-solicitudes/src/main/java/com/patitosrl/ms_solicitudes/web/dtos/SolicitudRequest.java">
+package com.patitosrl.ms_solicitudes.web.dtos;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
+import com.patitosrl.ms_solicitudes.business.models.Prioridad;
+import com.patitosrl.ms_solicitudes.business.models.TipoServicio;
+
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
+import lombok.Data;
+
+@Data
+public class SolicitudRequest {
+
+    @NotBlank(message = "El domicilio es obligatorio")
+    private String domicilio;
+
+    @NotEmpty(message = "Debe indicar al menos un tipo de servicio")
+    private List<TipoServicio> tiposServicio;
+
+    @NotBlank(message = "La marca es obligatoria")
+    private String marca;
+
+    @NotBlank(message = "El modelo es obligatorio")
+    private String modelo;
+
+    @NotBlank(message = "La descripción es obligatoria")
+    private String descripcion;
+
+    @NotNull(message = "La especialidad es obligatoria")
+    private Long especialidadId;
+
+    @NotNull(message = "La prioridad es obligatoria")
+    private Prioridad prioridad;
+
+    @NotNull(message = "La fecha y hora programada es obligatoria")
+    private LocalDateTime fechaHoraProgramada;
+
+    private Boolean esFeriado;
 }
 </file>
 
@@ -4678,6 +4641,48 @@ public class SolicitudResponse {
                 s.getFechaCreacion());
     }
 }
+</file>
+
+<file path="ms-solicitudes/Dockerfile">
+# ==========================================
+# Stage 1: Build
+# ==========================================
+FROM maven:3.9.6-eclipse-temurin-21-alpine AS build
+
+WORKDIR /app
+
+COPY pom.xml ./
+COPY commons-geo/pom.xml ./commons-geo/
+COPY ms-clientes/pom.xml ./ms-clientes/
+COPY ms-tecnicos/pom.xml ./ms-tecnicos/
+COPY ms-solicitudes/pom.xml ./ms-solicitudes/
+COPY api-gateway/pom.xml ./api-gateway/
+
+COPY commons-geo/src ./commons-geo/src
+COPY ms-solicitudes/src ./ms-solicitudes/src
+
+RUN mvn clean package -pl ms-solicitudes -am -DskipTests
+
+# ==========================================
+# Stage 2: Runtime
+# ==========================================
+FROM eclipse-temurin:21-jre-alpine AS final
+
+WORKDIR /app
+
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+
+
+# Crear carpeta /app/data con permisos para appuser (CRÍTICO para H2)
+RUN mkdir -p /app/data && chown -R appuser:appgroup /app/data
+
+COPY --from=build --chown=appuser:appgroup /app/ms-solicitudes/target/ms-solicitudes-1.0.0-SNAPSHOT.jar /app/app.jar
+
+USER appuser
+
+EXPOSE 41072
+
+ENTRYPOINT [ "java", "-jar", "app.jar" ]
 </file>
 
 <file path="ms-solicitudes/pom.xml">
@@ -4766,6 +4771,276 @@ public class SolicitudResponse {
         </plugins>
     </build>
 </project>
+</file>
+
+<file path="ms-tecnicos/src/main/java/com/patitosrl/ms_tecnicos/web/controllers/TecnicoController.java">
+package com.patitosrl.ms_tecnicos.web.controllers;
+
+import java.util.List;
+
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.web.bind.annotation.*;
+
+import com.patitosrl.ms_tecnicos.business.models.Tecnico;
+import com.patitosrl.ms_tecnicos.business.services.TecnicoService;
+import com.patitosrl.ms_tecnicos.web.dtos.TecnicoRequest;
+import com.patitosrl.ms_tecnicos.web.dtos.TecnicoResponse;
+import com.patitosrl.ms_tecnicos.web.dtos.TecnicoSyncRequest;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+
+@RestController
+@RequestMapping("/api/tecnicos")
+@RequiredArgsConstructor
+@Tag(name = "Gestión de Técnicos", description = "Endpoints para administrar los técnicos")
+public class TecnicoController {
+
+    private final TecnicoService service;
+
+    @GetMapping
+    @Operation(summary = "Listar todos los técnicos")
+    public ResponseEntity<List<TecnicoResponse>> listar() {
+        return ResponseEntity.ok(service.listar().stream().map(TecnicoResponse::desde).toList());
+    }
+
+    @GetMapping("/candidatos")
+    @Operation(summary = "Buscar técnicos candidatos")
+    public ResponseEntity<List<TecnicoResponse>> buscarCandidatos(
+            @RequestParam Double lat, @RequestParam Double lon, @RequestParam String certificacion) {
+        return ResponseEntity.ok(service.buscarCandidatos(lat, lon, certificacion).stream()
+                .map(TecnicoResponse::desde).toList());
+    }
+
+    @GetMapping("/{id}")
+    @Operation(summary = "Obtener un técnico por ID (keycloakId)")
+    public ResponseEntity<TecnicoResponse> obtener(@PathVariable String id) {
+        return ResponseEntity.ok(TecnicoResponse.desde(service.obtener(id)));
+    }
+
+    @PostMapping
+    @Operation(summary = "Registrar un nuevo técnico (desde Keycloak)")
+    public ResponseEntity<TecnicoResponse> crear(@Valid @RequestBody TecnicoRequest req, @AuthenticationPrincipal Jwt jwt) {
+        String keycloakId = jwt.getSubject();
+        Tecnico t = service.crear(req, keycloakId);
+        return ResponseEntity.ok(TecnicoResponse.desde(t));
+    }
+
+    @PostMapping("/sincronizar")
+    @Operation(summary = "Sincronizar técnico desde Keycloak")
+    public ResponseEntity<TecnicoResponse> sincronizar(@RequestBody TecnicoSyncRequest req) {
+        Tecnico t = service.sincronizar(req.getKeycloakId(), req.getNombre(), req.getEmail());
+        return ResponseEntity.ok(TecnicoResponse.desde(t));
+    }
+
+    @PutMapping("/{id}")
+    @Operation(summary = "Actualizar un técnico existente")
+    public ResponseEntity<TecnicoResponse> actualizar(@PathVariable String id,
+                                                      @Valid @RequestBody TecnicoRequest req) {
+        return ResponseEntity.ok(TecnicoResponse.desde(service.actualizar(id, req)));
+    }
+
+    @PatchMapping("/{id}/disponibilidad")
+    @Operation(summary = "Cambiar disponibilidad del técnico (para aceptar/liberar ofertas)")
+    public ResponseEntity<TecnicoResponse> cambiarDisponibilidad(@PathVariable String id,
+                                                                 @RequestParam boolean disponible) {
+        return ResponseEntity.ok(TecnicoResponse.desde(service.cambiarDisponibilidad(id, disponible)));
+    }
+
+    @DeleteMapping("/{id}")
+    @Operation(summary = "Eliminar un técnico")
+    public ResponseEntity<Void> eliminar(@PathVariable String id) {
+        service.eliminar(id);
+        return ResponseEntity.noContent().build();
+    }
+
+}
+</file>
+
+<file path="ms-tecnicos/Dockerfile">
+# ==========================================
+# Stage 1: Build
+# ==========================================
+FROM maven:3.9.6-eclipse-temurin-21-alpine AS build
+
+WORKDIR /app
+
+COPY pom.xml ./
+COPY commons-geo/pom.xml ./commons-geo/
+COPY ms-clientes/pom.xml ./ms-clientes/
+COPY ms-tecnicos/pom.xml ./ms-tecnicos/
+COPY ms-solicitudes/pom.xml ./ms-solicitudes/
+COPY api-gateway/pom.xml ./api-gateway/
+
+COPY commons-geo/src ./commons-geo/src
+COPY ms-tecnicos/src ./ms-tecnicos/src
+
+RUN mvn clean package -pl ms-tecnicos -am -DskipTests
+
+# ==========================================
+# Stage 2: Runtime
+# ==========================================
+FROM eclipse-temurin:21-jre-alpine AS final
+
+WORKDIR /app
+
+# Crear grupo y usuario
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+
+# Crear carpeta /app/data con permisos para appuser (CRÍTICO para H2 en archivo)
+RUN mkdir -p /app/data && chown -R appuser:appgroup /app/data
+
+# Copiar el jar
+COPY --from=build --chown=appuser:appgroup /app/ms-tecnicos/target/ms-tecnicos-1.0.0-SNAPSHOT.jar /app/app.jar
+
+USER appuser
+
+EXPOSE 41073
+
+ENTRYPOINT [ "java", "-jar", "app.jar" ]
+</file>
+
+<file path="ms-tecnicos/pom.xml">
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.patitosrl</groupId>
+        <artifactId>proyecto-patito</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>ms-tecnicos</artifactId>
+    <name>ms-tecnicos</name>
+    <description>Microservicio de gestión de técnicos, certificaciones y zonas de cobertura</description>
+
+    <dependencies>
+        <!-- Spring Web -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <!-- Spring Data JPA -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-jpa</artifactId>
+        </dependency>
+
+        <!-- Base de Datos H2 -->
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!-- Validaciones -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
+        </dependency>
+
+        <!-- Swagger / OpenAPI -->
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+            <version>2.5.0</version>
+        </dependency>
+
+        
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
+        </dependency>
+
+         <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+</project>
+</file>
+
+<file path="README.md">
+# ProyectoBackendDeAplicaciones - Técnica Patito S.R.L.
+
+Backend desarrollado con arquitectura de microservicios para la gestión de servicios técnicos domiciliarios.
+
+---
+
+## Estructura del Proyecto (Módulos)
+
+El backend está compuesto por 5 módulos Maven independientes:
+
+### 1. commons-geo (Librería Compartida)
+*   **Propósito:** Centralizar la conexión con la API externa de mapas (OSRM/Google Maps).
+*   **Uso:** `ms-solicitudes` lo incluye para calcular la distancia real de la ruta (no en línea recta).
+
+### 2. api-gateway (Puerta de Entrada)
+*   **Propósito:** Recibir todas las peticiones, validar el token JWT con Keycloak y enrutar al microservicio correcto.
+*   **Archivos clave:**
+    *   `GatewayConfig.java`: Define las rutas (ej. `/api/tecnicos/**` → puerto 8082).
+    *   `GatewaySecurityConfig.java`: Configura Spring Security reactivo para validar el JWT.
+
+### 3. ms-clientes (Padrón de Clientes)
+*   **Propósito:** CRUD de clientes con sus coordenadas.
+*   **Archivos clave:**
+    *   `Cliente.java`: Entidad JPA.
+    *   `ClienteService.java`: Lógica de negocio (valida DNI duplicado).
+    *   `ClienteController.java`: Endpoints REST.
+    *   `SecurityConfig.java`: Configuración de seguridad (valida JWT y extrae roles).
+
+### 4. ms-tecnicos (Padrón de Técnicos)
+*   **Propósito:** CRUD de técnicos con sus certificaciones y zonas de cobertura.
+*   **Archivos clave:**
+    *   `TecnicoService.java`: Lógica de negocio (implementa la fórmula de Haversine para filtrar técnicos a menos de 13 km).
+    *   `TecnicoController.java`: Endpoints REST (incluye `/candidatos`).
+    *   `DataLoader.java`: Carga datos de prueba al iniciar.
+
+### 5. ms-solicitudes (El Orquestador)
+*   **Propósito:** Es el corazón del sistema. Gestiona el ciclo de vida de la solicitud.
+*   **Archivos clave:**
+    *   `SolicitudService.java`: Lógica de creación, aprobación de presupuesto, cancelación y finalización.
+    *   `AsignacionService.java`: Lógica de asignación (ofertar, aceptar, rechazar). Usa `GeoService` y el patrón Strategy.
+    *   `OfertaScheduler.java`: Tarea programada (`@Scheduled`) que cada minuto revisa si alguna oferta expiró (los 15 minutos).
+    *   `CostoService.java` + `CostoVisitaStrategy.java`: Patrón Strategy para calcular el costo de visita según prioridad y horario.
+    *   `ClientesClient.java` y `TecnicosClient.java`: Llamadas REST a otros microservicios usando `RestClient`.
+
+---
+
+## Cómo ejecutar los Tests
+
+Para ejecutar toda la suite de tests del proyecto (todos los módulos), posicionate en la **raíz del proyecto** (donde está el `pom.xml` principal) y ejecutá:
+
+```bash
+mvn clean test
+
+mvn clean test -pl ms-tecnicos -am (para ejecutar un modulo especifico)
 </file>
 
 <file path="ms-tecnicos/src/main/java/com/patitosrl/ms_tecnicos/business/services/TecnicoService.java">
@@ -4921,166 +5196,94 @@ public class TecnicoService {
 }
 </file>
 
-<file path="ms-tecnicos/pom.xml">
-<?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
-    <modelVersion>4.0.0</modelVersion>
+<file path="ms-clientes/src/main/java/com/patitosrl/ms_clientes/web/controllers/ClienteController.java">
+package com.patitosrl.ms_clientes.web.controllers;
 
-    <parent>
-        <groupId>com.patitosrl</groupId>
-        <artifactId>proyecto-patito</artifactId>
-        <version>1.0.0-SNAPSHOT</version>
-    </parent>
+import java.util.List;
 
-    <artifactId>ms-tecnicos</artifactId>
-    <name>ms-tecnicos</name>
-    <description>Microservicio de gestión de técnicos, certificaciones y zonas de cobertura</description>
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 
-    <dependencies>
-        <!-- Spring Web -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
-        </dependency>
+import com.patitosrl.ms_clientes.business.models.Cliente;
+import com.patitosrl.ms_clientes.business.services.ClienteService;
+import com.patitosrl.ms_clientes.web.dtos.ClienteRequest;
+import com.patitosrl.ms_clientes.web.dtos.ClienteResponse;
+import com.patitosrl.ms_clientes.web.dtos.ClienteSyncRequest;
 
-        <!-- Spring Data JPA -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-jpa</artifactId>
-        </dependency>
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 
-        <!-- Base de Datos H2 -->
-        <dependency>
-            <groupId>com.h2database</groupId>
-            <artifactId>h2</artifactId>
-            <scope>runtime</scope>
-        </dependency>
+@RestController
+@RequestMapping("/api/clientes")
+@RequiredArgsConstructor
+@Tag(name = "Gestión de Clientes", description = "Endpoints para administrar los clientes")
+public class ClienteController {
 
-        <!-- Validaciones -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-validation</artifactId>
-        </dependency>
+    private final ClienteService service;
 
-        <!-- Swagger / OpenAPI -->
-        <dependency>
-            <groupId>org.springdoc</groupId>
-            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
-            <version>2.5.0</version>
-        </dependency>
+    @GetMapping
+    @Operation(summary = "Listar todos los clientes")
+    public ResponseEntity<List<ClienteResponse>> listar() {
+        return ResponseEntity.ok(service.listar().stream().map(ClienteResponse::desde).toList());
+    }
 
-        
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-security</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
-        </dependency>
+    @GetMapping("/{id}")
+    @Operation(summary = "Obtener un cliente por ID (keycloakId)")
+    public ResponseEntity<ClienteResponse> obtener(@PathVariable String id) {
+        return ResponseEntity.ok(ClienteResponse.desde(service.obtener(id)));
+    }
 
-         <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-test</artifactId>
-            <scope>test</scope>
-        </dependency>
-        
-    </dependencies>
+    @PostMapping
+    @Operation(summary = "Registrar un nuevo cliente en Keycloak y H2")
+    public ResponseEntity<ClienteResponse> crear(@Valid @RequestBody ClienteRequest req) {
+        Cliente c = service.crear(req);
+        return ResponseEntity.ok(ClienteResponse.desde(c));
+    }
 
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-            </plugin>
-            <plugin>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-maven-plugin</artifactId>
-            </plugin>
-        </plugins>
-    </build>
-</project>
+    @PostMapping("/sincronizar")
+    @Operation(summary = "Sincronizar cliente desde Keycloak")
+    public ResponseEntity<ClienteResponse> sincronizar(@RequestBody ClienteSyncRequest req) {
+        Cliente c = service.sincronizar(req.getKeycloakId(), req.getNombre(), req.getEmail());
+        return ResponseEntity.ok(ClienteResponse.desde(c));
+    }
+}
 </file>
 
-<file path="README.md">
-# ProyectoBackendDeAplicaciones - Técnica Patito S.R.L.
-
-Backend desarrollado con arquitectura de microservicios para la gestión de servicios técnicos domiciliarios.
-
----
-
-## Estructura del Proyecto (Módulos)
-
-El backend está compuesto por 5 módulos Maven independientes:
-
-### 1. commons-geo (Librería Compartida)
-*   **Propósito:** Centralizar la conexión con la API externa de mapas (OSRM/Google Maps).
-*   **Uso:** `ms-solicitudes` lo incluye para calcular la distancia real de la ruta (no en línea recta).
-
-### 2. api-gateway (Puerta de Entrada)
-*   **Propósito:** Recibir todas las peticiones, validar el token JWT con Keycloak y enrutar al microservicio correcto.
-*   **Archivos clave:**
-    *   `GatewayConfig.java`: Define las rutas (ej. `/api/tecnicos/**` → puerto 8082).
-    *   `GatewaySecurityConfig.java`: Configura Spring Security reactivo para validar el JWT.
-
-### 3. ms-clientes (Padrón de Clientes)
-*   **Propósito:** CRUD de clientes con sus coordenadas.
-*   **Archivos clave:**
-    *   `Cliente.java`: Entidad JPA.
-    *   `ClienteService.java`: Lógica de negocio (valida DNI duplicado).
-    *   `ClienteController.java`: Endpoints REST.
-    *   `SecurityConfig.java`: Configuración de seguridad (valida JWT y extrae roles).
-
-### 4. ms-tecnicos (Padrón de Técnicos)
-*   **Propósito:** CRUD de técnicos con sus certificaciones y zonas de cobertura.
-*   **Archivos clave:**
-    *   `TecnicoService.java`: Lógica de negocio (implementa la fórmula de Haversine para filtrar técnicos a menos de 13 km).
-    *   `TecnicoController.java`: Endpoints REST (incluye `/candidatos`).
-    *   `DataLoader.java`: Carga datos de prueba al iniciar.
-
-### 5. ms-solicitudes (El Orquestador)
-*   **Propósito:** Es el corazón del sistema. Gestiona el ciclo de vida de la solicitud.
-*   **Archivos clave:**
-    *   `SolicitudService.java`: Lógica de creación, aprobación de presupuesto, cancelación y finalización.
-    *   `AsignacionService.java`: Lógica de asignación (ofertar, aceptar, rechazar). Usa `GeoService` y el patrón Strategy.
-    *   `OfertaScheduler.java`: Tarea programada (`@Scheduled`) que cada minuto revisa si alguna oferta expiró (los 15 minutos).
-    *   `CostoService.java` + `CostoVisitaStrategy.java`: Patrón Strategy para calcular el costo de visita según prioridad y horario.
-    *   `ClientesClient.java` y `TecnicosClient.java`: Llamadas REST a otros microservicios usando `RestClient`.
-
----
-
-## Cómo ejecutar los Tests
-
-Para ejecutar toda la suite de tests del proyecto (todos los módulos), posicionate en la **raíz del proyecto** (donde está el `pom.xml` principal) y ejecutá:
-
-```bash
-mvn clean test
-
-mvn clean test -pl ms-tecnicos -am (para ejecutar un modulo especifico)
-</file>
-
-<file path="api-gateway/src/main/resources/application.yml">
+<file path="ms-clientes/src/main/resources/application.yml">
 server:
-  port: 41071
+  port: 41074
 
 spring:
   security:
     oauth2:
       resourceserver:
         jwt:
-          # Usamos variables de entorno con valores por defecto para Docker
-          issuer-uri: ${SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI:http://keycloak:8080/realms/patito}
-          jwk-set-uri: ${SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI:http://keycloak:8080/realms/patito/protocol/openid-connect/certs}
+          issuer-uri: http://keycloak:8080/realms/patito
+          jwk-set-uri: http://keycloak:8080/realms/patito/protocol/openid-connect/certs
   application:
-    name: api-gateway
+    name: ms-clientes
+  datasource:
+    # Persistencia H2 y ruta donde se guarda
+    url: jdbc:h2:file:/app/data/clientes;AUTO_SERVER=TRUE
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      # update para no borrar los datos al reiniciar
+      ddl-auto: update
+    show-sql: false
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
 
-app:
-  gateway:
-    # Nombres de los servicios en la red de Docker
-    solicitudes-url: ${APP_GATEWAY_SOLICITUDES_URL:http://ms-solicitudes:41072}
-    tecnicos-url: ${APP_GATEWAY_TECNICOS_URL:http://ms-tecnicos:41073}
-    clientes-url: ${APP_GATEWAY_CLIENTES_URL:http://ms-clientes:41074}
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  api-docs:
+    path: /v3/api-docs
 </file>
 
 <file path="ms-solicitudes/src/main/java/com/patitosrl/ms_solicitudes/business/services/SolicitudService.java">
@@ -5357,6 +5560,176 @@ public class SolicitudService {
 }
 </file>
 
+<file path="docker-compose.yml">
+services:
+  # ==========================================
+  # KEYCLOAK (Identity Provider)
+  # ==========================================
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0.1
+    container_name: keycloak-patito
+    ports:
+      - "41090:8080"
+    environment:
+      - KEYCLOAK_ADMIN=admin
+      - KEYCLOAK_ADMIN_PASSWORD=admin
+      - KC_DB=dev-file
+      - KC_HOSTNAME_STRICT=false
+      - KC_HEALTH_ENABLED=true
+    command: start-dev
+    volumes:
+      - keycloak_data:/opt/keycloak/data
+    networks:
+      - patito-net
+    restart: unless-stopped
+
+  # ==========================================
+  # API GATEWAY (Punto de entrada único)
+  # ==========================================
+  api-gateway:
+    build:
+      context: .
+      dockerfile: api-gateway/Dockerfile
+    container_name: api-gateway
+    ports:
+      - "41071:41071"
+    environment:
+      # URLs internas de los microservicios
+      - APP_GATEWAY_SOLICITUDES_URL=http://ms-solicitudes:41072
+      - APP_GATEWAY_TECNICOS_URL=http://ms-tecnicos:41073
+      - APP_GATEWAY_CLIENTES_URL=http://ms-clientes:41074
+      # ELIMINADAS LAS VARIABLES DE SEGURIDAD PARA QUE USE EL application.yml
+    depends_on:
+      keycloak:
+        condition: service_started
+      ms-solicitudes:
+        condition: service_started
+      # ms-tecnicos:
+      #  condition: service_started
+      ms-clientes:
+        condition: service_started
+    networks:
+      - patito-net
+    restart: unless-stopped
+
+  # ==========================================
+  # MS-SOLICITUDES
+  # ==========================================
+  ms-solicitudes:
+    build:
+      context: .
+      dockerfile: ms-solicitudes/Dockerfile
+    container_name: ms-solicitudes
+    ports:
+      - "41072:41072"
+    environment:
+      - APP_CLIENTES_BASE_URL=http://ms-clientes:41074
+      - APP_TECNICOS_BASE_URL=http://ms-tecnicos:41073
+      - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI=http://keycloak:8080/realms/patito
+      - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI=http://keycloak:8080/realms/patito/protocol/openid-connect/certs
+    depends_on:
+      keycloak:
+        condition: service_started
+    networks:
+      - patito-net
+    restart: unless-stopped
+    volumes:
+      - ms-solicitudes-data:/app/data
+
+  # ==========================================
+  # MS-TECNICOS
+  # ==========================================
+  ms-tecnicos:
+    build:
+      context: .
+      dockerfile: ms-tecnicos/Dockerfile
+    container_name: ms-tecnicos
+    ports:
+      - "41073:41073"
+    environment:
+      - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI=http://keycloak:8080/realms/patito
+      - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI=http://keycloak:8080/realms/patito/protocol/openid-connect/certs
+    depends_on:
+      keycloak:
+        condition: service_started
+    networks:
+      - patito-net
+    restart: unless-stopped
+    volumes:
+      - ms-tecnicos-data:/app/data
+
+  # ==========================================
+  # MS-CLIENTES
+  # ==========================================
+  ms-clientes:
+    build:
+      context: .
+      dockerfile: ms-clientes/Dockerfile
+    container_name: ms-clientes
+    ports:
+      - "41074:41074"
+      # - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI=http://keycloak:8080/realms/patito
+      # - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI=http://keycloak:8080/realms/patito/protocol/openid-connect/certs
+    depends_on:
+      keycloak:
+        condition: service_started
+    networks:
+      - patito-net
+    restart: unless-stopped
+    volumes:
+      - ms-clientes-data:/app/data
+
+# ==========================================
+# VOLÚMENES Y REDES
+# ==========================================
+volumes:
+  keycloak_data:
+  ms-clientes-data:
+  ms-solicitudes-data:
+  ms-tecnicos-data:
+
+networks:
+  patito-net:
+    driver: bridge
+</file>
+
+<file path="api-gateway/src/main/resources/application.yml">
+spring:
+  application:
+    name: api-gateway
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://keycloak:8080/realms/patito
+          jwk-set-uri: http://keycloak:8080/realms/patito/protocol/openid-connect/certs
+
+  cloud:
+    gateway:
+      routes:
+        - id: ms-clientes
+          uri: http://ms-clientes:41074
+          predicates:
+            - Path=/api/clientes/**
+        - id: ms-tecnicos
+          uri: http://ms-tecnicos:41073
+          predicates:
+            - Path=/api/tecnicos/**
+        - id: ms-solicitudes
+          uri: http://ms-solicitudes:41072
+          predicates:
+            - Path=/api/solicitudes/**
+
+server:
+  port: 41071
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  api-docs:
+    path: /v3/api-docs
+</file>
+
 <file path="ms-solicitudes/src/main/java/com/patitosrl/ms_solicitudes/web/controllers/SolicitudController.java">
 package com.patitosrl.ms_solicitudes.web.controllers;
 
@@ -5371,8 +5744,6 @@ import org.springframework.web.bind.annotation.*;
 import com.patitosrl.ms_solicitudes.business.models.HistorialEstado;
 import com.patitosrl.ms_solicitudes.business.models.Solicitud;
 import com.patitosrl.ms_solicitudes.business.services.SolicitudService;
-import com.patitosrl.ms_solicitudes.web.dtos.DerivarRequest;
-import com.patitosrl.ms_solicitudes.web.dtos.ReprogramarRequest;
 import com.patitosrl.ms_solicitudes.web.dtos.SolicitudRequest;
 import com.patitosrl.ms_solicitudes.web.dtos.SolicitudResponse;
 
@@ -5395,7 +5766,6 @@ public class SolicitudController {
     public ResponseEntity<SolicitudResponse> crear(@Valid @RequestBody SolicitudRequest req,
                                                    @AuthenticationPrincipal Jwt jwt) {
         String clienteKeycloakId = jwt.getSubject();
-        // El servicio ahora se encarga de buscar al técnico y ofertar automáticamente
         Solicitud s = service.crear(req, clienteKeycloakId);
         
         return ResponseEntity.created(URI.create("/api/solicitudes/" + s.getId()))
@@ -5429,7 +5799,6 @@ public class SolicitudController {
     public ResponseEntity<SolicitudResponse> obtener(@PathVariable Long id,
                                                      @AuthenticationPrincipal Jwt jwt) {
         Solicitud s = service.obtener(id);
-        // Validación de propiedad: Admin ve todo, Cliente solo lo suyo, Técnico solo lo suyo
         boolean esAdmin = jwt.getClaimAsStringList("realm_access.roles") != null
                 && jwt.getClaimAsStringList("realm_access.roles").contains("ADMIN");
         boolean esDueno = s.getClienteId().equals(jwt.getSubject());
@@ -5465,42 +5834,6 @@ public class SolicitudController {
     public ResponseEntity<SolicitudResponse> finalizar(@PathVariable Long id) {
         return ResponseEntity.ok(SolicitudResponse.desde(service.finalizar(id)));
     }
-
-        @PutMapping("/{id}")
-    @Operation(summary = "Editar una solicitud en estado PENDIENTE u OFERTADA")
-    public ResponseEntity<SolicitudResponse> actualizar(@PathVariable Long id,
-                                                        @Valid @RequestBody SolicitudRequest req) {
-        return ResponseEntity.ok(SolicitudResponse.desde(service.actualizar(id, req)));
-    }
-
-    @PostMapping("/{id}/reprogramar")
-    @Operation(summary = "Reprogramar una solicitud")
-    public ResponseEntity<SolicitudResponse> reprogramar(@PathVariable Long id,
-                                                         @Valid @RequestBody ReprogramarRequest req) {
-        return ResponseEntity.ok(SolicitudResponse.desde(
-                service.reprogramar(id, req.getNuevaFecha(), req.getMotivo())));
-    }
-
-    @PostMapping("/{id}/derivar")
-    @Operation(summary = "Derivar una solicitud a otro técnico")
-    public ResponseEntity<SolicitudResponse> derivar(@PathVariable Long id,
-                                                     @Valid @RequestBody DerivarRequest req) {
-        return ResponseEntity.ok(SolicitudResponse.desde(
-                service.derivar(id, req.getTecnicoDestinoId(), req.getMotivo())));
-    }
-
-    @PostMapping("/{id}/iniciar")
-    @Operation(summary = "Iniciar el servicio sin pasar por aprobación de presupuesto")
-    public ResponseEntity<SolicitudResponse> iniciar(@PathVariable Long id) {
-        return ResponseEntity.ok(SolicitudResponse.desde(service.iniciar(id)));
-    }
-
-    @DeleteMapping("/{id}")
-    @Operation(summary = "Eliminar una solicitud PENDIENTE o CANCELADA")
-    public ResponseEntity<Void> eliminar(@PathVariable Long id) {
-        service.eliminar(id);
-        return ResponseEntity.noContent().build();
-    }
 }
 </file>
 
@@ -5518,13 +5851,15 @@ spring:
   application:
     name: ms-tecnicos
   datasource:
-    url: jdbc:h2:mem:tecnicos;DB_CLOSE_DELAY=-1
+    url: jdbc:h2:file:/app/data/tecnicos;AUTO_SERVER=TRUE;AUTO_SERVER_PORT=9092
     username: sa
     password:
+    driver-class-name: org.h2.Driver
   jpa:
     hibernate:
-      ddl-auto: create-drop
+      ddl-auto: update
     show-sql: false
+    database-platform: org.hibernate.dialect.H2Dialect
   h2:
     console:
       enabled: true
@@ -5541,6 +5876,63 @@ springdoc:
 app:
   candidatos:
     radio-km: 13.0
+</file>
+
+<file path="ms-solicitudes/src/main/resources/application.yml">
+server:
+  port: 41072
+
+spring:
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI:http://keycloak:8080/realms/patito}
+          jwk-set-uri: ${SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI:http://keycloak:8080/realms/patito/protocol/openid-connect/certs}
+  application:
+    name: ms-solicitudes
+  datasource:
+    url: jdbc:h2:file:/app/data/solicitudes;AUTO_SERVER=TRUE;AUTO_SERVER_PORT=9093
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    database-platform: org.hibernate.dialect.H2Dialect
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    operationsSorter: alpha
+  api-docs:
+    path: /v3/api-docs
+
+app:
+  clientes:
+    base-url: ${APP_CLIENTES_BASE_URL:http://ms-clientes:41074}
+  tecnicos:
+    base-url: ${APP_TECNICOS_BASE_URL:http://ms-tecnicos:41073}
+  geo:
+    base-url: ${GEO_BASE_URL:https://router.project-osrm.org}
+
+tarifas:
+  costo-base: 500.0
+  costo-por-km: 100.0
+  recargo-prioridad:
+    BAJA: 0.0
+    NORMAL: 0.0
+    ALTA: 0.20
+    URGENTE: 0.50
+  recargo-fuera-de-horario: 0.30
+  horario-habil:
+    inicio: "08:00"
+    fin: "18:00"
 </file>
 
 <file path="ms-clientes/src/main/java/com/patitosrl/ms_clientes/business/services/ClienteService.java">
@@ -5587,7 +5979,7 @@ public class ClienteService {
             throw new ReglaDeNegocioException("Ya existe un cliente con DNI " + req.getDni());
         }
 
-        // 1. Crear en Keycloak
+        // 1. Crear en Keycloak (y obtener el UUID)
         String keycloakId = crearUsuarioEnKeycloak(req);
 
         // 2. Guardar en H2 con el UUID obtenido
@@ -5605,33 +5997,32 @@ public class ClienteService {
     private String crearUsuarioEnKeycloak(ClienteRequest req) {
         try {
             // A. Obtener Token de Admin (Client Credentials)
-            // CORRECCIÓN: Usamos un String en formato URL-encoded en lugar de un Map
             String tokenBody = "grant_type=client_credentials" +
                                "&client_id=patito-api" +
-                               "&client_secret=d8Lwbv44FWboVSKG3FDrVHsOisq8wULZ";
+                               "&client_secret=patito-secret-1234";
 
             Map tokenResponse = keycloakWebClient.post()
                     .uri("/realms/patito/protocol/openid-connect/token")
                     .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                    .bodyValue(tokenBody) // <-- String, no Map
+                    .bodyValue(tokenBody)
                     .retrieve()
                     .bodyToMono(Map.class)
                     .block();
 
             String token = (String) tokenResponse.get("access_token");
 
-            // B. Crear el usuario
+            // B. Crear el usuario en Keycloak
             Map<String, Object> kcUser = new HashMap<>();
             kcUser.put("username", req.getDni()); 
-            kcUser.put("email", req.getDni() + "@patito.com"); 
+            kcUser.put("email", req.getEmail() != null ? req.getEmail() : req.getDni() + "@patito.com"); 
             kcUser.put("firstName", req.getNombre());
             kcUser.put("lastName", req.getApellido());
             kcUser.put("enabled", true);
             kcUser.put("emailVerified", true);
             
+            // Contraseña inicial (el DNI)
             kcUser.put("credentials", List.of(Map.of("type", "password", "value", req.getDni(), "temporary", false)));
 
-            // Ejecutamos el POST y capturamos el Header Location
             var response = keycloakWebClient.post()
                     .uri("/admin/realms/patito/users")
                     .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
@@ -5643,7 +6034,30 @@ public class ClienteService {
 
             if (response != null && response.getHeaders().getLocation() != null) {
                 String path = response.getHeaders().getLocation().getPath();
-                return path.substring(path.lastIndexOf('/') + 1);
+                String userId = path.substring(path.lastIndexOf('/') + 1);
+
+                // ========================================================
+                // C. ASIGNAR EL ROL "CLIENTE" AL USUARIO RECIÉN CREADO
+                // ========================================================
+                Map roleInfo = keycloakWebClient.get()
+                        .uri("/admin/realms/patito/roles/CLIENTE")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .retrieve()
+                        .bodyToMono(Map.class)
+                        .block();
+
+                if (roleInfo != null) {
+                    keycloakWebClient.post()
+                            .uri("/admin/realms/patito/users/" + userId + "/role-mappings/realm")
+                            .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .bodyValue(List.of(roleInfo))
+                            .retrieve()
+                            .toBodilessEntity()
+                            .block();
+                }
+
+                return userId;
             }
             throw new ReglaDeNegocioException("No se pudo obtener el ID de Keycloak");
 
@@ -5664,96 +6078,7 @@ public class ClienteService {
                         .longitud(0.0)
                         .build()));
     }
-
-        @Transactional
-    public Cliente actualizar(String id, ClienteRequest req) {
-        Cliente c = obtener(id);
-
-        if (!c.getDni().equals(req.getDni()) && clientes.existsByDni(req.getDni())) {
-            throw new ReglaDeNegocioException("Ya existe un cliente con DNI " + req.getDni());
-        }
-
-        c.setNombre(req.getNombre());
-        c.setApellido(req.getApellido());
-        c.setDni(req.getDni());
-        c.setLatitud(req.getLatitud());
-        c.setLongitud(req.getLongitud());
-        return clientes.save(c);
-    }
-
-    @Transactional
-    public Cliente actualizarUbicacion(String id, Double latitud, Double longitud) {
-        Cliente c = obtener(id);
-        c.setLatitud(latitud);
-        c.setLongitud(longitud);
-        return clientes.save(c);
-    }
-
-    /**
-     * Borra el cliente de la base local. OJO: NO borra el usuario en Keycloak.
-     * Si querés borrado completo, hay que llamar al Admin API de Keycloak aquí.
-     */
-    @Transactional
-    public void eliminar(String id) {
-        Cliente c = obtener(id);
-        clientes.delete(c);
-    }
 }
-</file>
-
-<file path="ms-solicitudes/src/main/resources/application.yml">
-server:
-  port: 41072
-
-spring:
-  security:
-    oauth2:
-      resourceserver:
-        jwt:
-          issuer-uri: ${SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI:http://keycloak:8080/realms/patito}
-          jwk-set-uri: ${SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI:http://keycloak:8080/realms/patito/protocol/openid-connect/certs}
-  application:
-    name: ms-solicitudes
-  datasource:
-    url: jdbc:h2:mem:solicitudes;DB_CLOSE_DELAY=-1
-    username: sa
-    password:
-  jpa:
-    hibernate:
-      ddl-auto: create-drop
-    show-sql: false
-  h2:
-    console:
-      enabled: true
-      path: /h2-console
-
-springdoc:
-  swagger-ui:
-    path: /swagger-ui.html
-    operationsSorter: alpha
-  api-docs:
-    path: /v3/api-docs
-
-app:
-  clientes:
-    base-url: ${APP_CLIENTES_BASE_URL:http://ms-clientes:41074}
-  tecnicos:
-    base-url: ${APP_TECNICOS_BASE_URL:http://ms-tecnicos:41073}
-  geo:
-    base-url: ${GEO_BASE_URL:https://router.project-osrm.org}
-
-tarifas:
-  costo-base: 500.0
-  costo-por-km: 100.0
-  recargo-prioridad:
-    BAJA: 0.0
-    NORMAL: 0.0
-    ALTA: 0.20
-    URGENTE: 0.50
-  recargo-fuera-de-horario: 0.30
-  horario-habil:
-    inicio: "08:00"
-    fin: "18:00"
 </file>
 
 <file path="pom.xml">
