@@ -1,0 +1,362 @@
+{
+  "info": {
+    "_postman_id": "22b84783-f9ab-4f51-a6c5-1749d295673c",
+    "name": "PatitoLocal",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "54731295",
+    "_collection_link": "https://go.postman.co/collection/54731295-22b84783-f9ab-4f51-a6c5-1749d295673c?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "Paso 1: Login Superadmin",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "var jsonData = pm.response.json();\r\npm.environment.set(\"token_admin\", jsonData.access_token);\r\nconsole.log(\"Token admin guardado:\", jsonData.access_token.substring(0, 20) + \"...\");"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "urlencoded",
+          "urlencoded": [
+            {
+              "key": "grant_type",
+              "value": "password"
+            },
+            {
+              "key": "client_id",
+              "value": "patito-api"
+            },
+            {
+              "key": "client_secret",
+              "value": "patito-secret-1234"
+            },
+            {
+              "key": "username",
+              "value": "superadmin"
+            },
+            {
+              "key": "password",
+              "value": "admin123"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{keycloak_url}}",
+          "host": [
+            "{{keycloak_url}}"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Paso 2: Crear Cliente",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"nombre\": \"Esteban\",\r\n  \"apellido\": \"Quito\",\r\n  \"email\": \"esteban.quito.2027@test.com\",\r\n  \"dni\": \"99999998\",\r\n  \"latitud\": -31.420,\r\n  \"longitud\": -64.188\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{gateway_url}}/api/clientes",
+          "host": [
+            "{{gateway_url}}"
+          ],
+          "path": [
+            "api",
+            "clientes"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Paso 3: Login Cliente",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.environment.set(\"token_cliente\", pm.response.json().access_token);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "urlencoded",
+          "urlencoded": [
+            {
+              "key": "grant_type",
+              "value": "password"
+            },
+            {
+              "key": "client_id",
+              "value": "patito-api"
+            },
+            {
+              "key": "client_secret",
+              "value": "patito-secret-1234"
+            },
+            {
+              "key": "username",
+              "value": "99999999"
+            },
+            {
+              "key": "password",
+              "value": "99999999"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{keycloak_url}}",
+          "host": [
+            "{{keycloak_url}}"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Paso 4: Crear Solicitud",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "var jsonData = pm.response.json();\r\npm.environment.set(\"solicitud_id\", jsonData.id);\r\npm.environment.set(\"tecnico_uuid\", jsonData.tecnicoId);\r\nconsole.log(\"Solicitud creada:\", jsonData.id, \"Asignada al técnico:\", jsonData.tecnicoId);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_cliente}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"domicilio\": \"Av. Colon 1234\",\r\n  \"tiposServicio\": [\"REPARACION\"],\r\n  \"marca\": \"Apple\",\r\n  \"modelo\": \"MacBook\",\r\n  \"descripcion\": \"No enciende\",\r\n  \"especialidadId\": 1,\r\n  \"prioridad\": \"NORMAL\",\r\n  \"fechaHoraProgramada\": \"2026-12-01T10:00:00\",\r\n  \"esFeriado\": false\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{gateway_url}}/api/solicitudes",
+          "host": [
+            "{{gateway_url}}"
+          ],
+          "path": [
+            "api",
+            "solicitudes"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Paso 5: Login Técnico",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.environment.set(\"token_tecnico\", pm.response.json().access_token);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "urlencoded",
+          "urlencoded": [
+            {
+              "key": "grant_type",
+              "value": "password"
+            },
+            {
+              "key": "client_id",
+              "value": "patito-api"
+            },
+            {
+              "key": "client_secret",
+              "value": "patito-secret-1234"
+            },
+            {
+              "key": "username",
+              "value": "88887777"
+            },
+            {
+              "key": "password",
+              "value": "88887777"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{keycloak_url}}",
+          "host": [
+            "{{keycloak_url}}"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Paso 6: Aceptar Solicitud",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.environment.set(\"total_costo\", pm.response.json().total);\r\nconsole.log(\"Aceptada. Costo total:\", pm.response.json().total);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_tecnico}}"
+          }
+        ],
+        "url": {
+          "raw": "{{gateway_url}}/api/solicitudes/{{solicitud_id}}/aceptar/{{tecnico_uuid}}",
+          "host": [
+            "{{gateway_url}}"
+          ],
+          "path": [
+            "api",
+            "solicitudes",
+            "{{solicitud_id}}",
+            "aceptar",
+            "{{tecnico_uuid}}"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Paso 7: Aprobar Presupuesto",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_cliente}}"
+          }
+        ],
+        "url": {
+          "raw": "{{gateway_url}}/api/solicitudes/{{solicitud_id}}/aprobar-presupuesto?importe={{total_costo}}",
+          "host": [
+            "{{gateway_url}}"
+          ],
+          "path": [
+            "api",
+            "solicitudes",
+            "{{solicitud_id}}",
+            "aprobar-presupuesto"
+          ],
+          "query": [
+            {
+              "key": "importe",
+              "value": "{{total_costo}}"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Paso 8: Finalizar Solicitud",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_tecnico}}"
+          }
+        ],
+        "url": {
+          "raw": "{{gateway_url}}/api/solicitudes/{{solicitud_id}}/finalizar",
+          "host": [
+            "{{gateway_url}}"
+          ],
+          "path": [
+            "api",
+            "solicitudes",
+            "{{solicitud_id}}",
+            "finalizar"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Paso 9: Consultar Historial",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_cliente}}"
+          }
+        ],
+        "url": {
+          "raw": "{{gateway_url}}/api/solicitudes/{{solicitud_id}}/historial",
+          "host": [
+            "{{gateway_url}}"
+          ],
+          "path": [
+            "api",
+            "solicitudes",
+            "{{solicitud_id}}",
+            "historial"
+          ]
+        }
+      },
+      "response": []
+    }
+  ]
+}
