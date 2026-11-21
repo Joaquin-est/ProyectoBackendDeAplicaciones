@@ -230,6 +230,7 @@ ms-tecnicos/
               infrastructure/
                 config/
                   DataLoader.java
+                  KeycloakConfig.java
                   SecurityConfig.java
                 repositories/
                   CertificacionRepository.java
@@ -261,12 +262,13 @@ ms-tecnicos/
                   TecnicoServiceTest.java
   Dockerfile
   pom.xml
+postman/
+  Patito Local.postman_environment.json
+  PatitoLocal.postman_collection.json
 .dockerignore
 .gitignore
-backend.postman_collection.json
 clientes.http
 docker-compose.yml
-Patito Local.postman_environment.json
 pom.xml
 README.md
 tecnicos.http
@@ -1567,6 +1569,25 @@ public class ZonaCobertura {
 }
 </file>
 
+<file path="ms-tecnicos/src/main/java/com/patitosrl/ms_tecnicos/infrastructure/config/KeycloakConfig.java">
+package com.patitosrl.ms_tecnicos.infrastructure.config;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.web.reactive.function.client.WebClient;
+
+@Configuration
+public class KeycloakConfig {
+
+    @Bean
+    public WebClient keycloakWebClient() {
+        return WebClient.builder()
+                .baseUrl("http://keycloak:8080")
+                .build();
+    }
+}
+</file>
+
 <file path="ms-tecnicos/src/main/java/com/patitosrl/ms_tecnicos/infrastructure/repositories/CertificacionRepository.java">
 package com.patitosrl.ms_tecnicos.infrastructure.repositories;
 
@@ -1727,44 +1748,6 @@ package com.patitosrl.ms_tecnicos.web.dtos;
 public record CatalogoResponse(Long id, String nombre) { }
 </file>
 
-<file path="ms-tecnicos/src/main/java/com/patitosrl/ms_tecnicos/web/dtos/TecnicoRequest.java">
-package com.patitosrl.ms_tecnicos.web.dtos;
-
-import java.util.List;
-
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import lombok.Data;
-
-@Data
-public class TecnicoRequest {
-
-    @NotBlank(message = "El nombre es obligatorio")
-    private String nombre;
-
-    @NotBlank(message = "El apellido es obligatorio")
-    private String apellido;
-
-    @NotBlank(message = "El DNI es obligatorio")
-    private String dni;
-
-    @NotNull(message = "La latitud es obligatoria")
-    private Double latitud;
-
-    @NotNull(message = "La longitud es obligatoria")
-    private Double longitud;
-
-    /** Si no se envía, el técnico se registra como disponible. */
-    private Boolean disponible;
-
-    /** IDs de certificaciones existentes. */
-    private List<Long> certificacionIds;
-
-    /** IDs de zonas de cobertura existentes. */
-    private List<Long> zonaCoberturaIds;
-}
-</file>
-
 <file path="ms-tecnicos/src/main/java/com/patitosrl/ms_tecnicos/web/dtos/TecnicoSyncRequest.java">
 package com.patitosrl.ms_tecnicos.web.dtos;
 
@@ -1842,6 +1825,288 @@ public class TecnicosApplication {
     public static void main(String[] args) {
         SpringApplication.run(TecnicosApplication.class, args);
     }
+}
+</file>
+
+<file path="postman/Patito Local.postman_environment.json">
+{
+	"id": "ec27d725-1520-4718-a8c8-6a821e4b7c2e",
+	"name": "Patito Local",
+	"values": [
+		{
+			"key": "gateway_url",
+			"value": "",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "keycloak_url",
+			"value": "",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "token_admin",
+			"value": "",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "token_cliente",
+			"value": "",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "token_tecnico",
+			"value": "",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "solicitud_id",
+			"value": "",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "tecnico_uuid",
+			"value": "",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "total_costo",
+			"value": "",
+			"type": "default",
+			"enabled": true
+		}
+	],
+	"color": null,
+	"_postman_variable_scope": "environment",
+	"_postman_exported_at": "2026-11-14T21:32:12.807Z",
+	"_postman_exported_using": "Postman/12.36.4"
+}
+</file>
+
+<file path="postman/PatitoLocal.postman_collection.json">
+{
+  "info": {
+    "_postman_id": "22b84783-f9ab-4f51-a6c5-1749d295673c",
+    "name": "PatitoLocal - Flujo Completo (Via Gateway)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Paso 1: Login Superadmin",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "var jsonData = pm.response.json();\r\npm.environment.set(\"token_admin\", jsonData.access_token);\r\nconsole.log(\"Token admin guardado:\", jsonData.access_token.substring(0, 20) + \"...\");"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"superadmin\",\n  \"password\": \"admin123\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{gateway_url}}/api/login",
+          "host": ["{{gateway_url}}"],
+          "path": ["api", "login"]
+        }
+      }
+    },
+    {
+      "name": "Paso 2: Crear Cliente",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"Esteban\",\n  \"apellido\": \"Quito\",\n  \"email\": \"esteban.quito.2027@test.com\",\n  \"dni\": \"99999998\",\n  \"latitud\": -31.420,\n  \"longitud\": -64.188\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{gateway_url}}/api/clientes",
+          "host": ["{{gateway_url}}"],
+          "path": ["api", "clientes"]
+        }
+      }
+    },
+    {
+      "name": "Paso 3: Login Cliente",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": ["pm.environment.set(\"token_cliente\", pm.response.json().access_token);"]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"99999998\",\n  \"password\": \"99999998\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{gateway_url}}/api/login",
+          "host": ["{{gateway_url}}"],
+          "path": ["api", "login"]
+        }
+      }
+    },
+    {
+      "name": "Paso 4: Crear Solicitud",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "var jsonData = pm.response.json();\r\npm.environment.set(\"solicitud_id\", jsonData.id);\r\npm.environment.set(\"tecnico_uuid\", jsonData.tecnicoId);\r\nconsole.log(\"Solicitud creada:\", jsonData.id, \"Asignada al técnico:\", jsonData.tecnicoId);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token_cliente}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"domicilio\": \"Av. Colon 1234\",\n  \"tiposServicio\": [\"REPARACION\"],\n  \"marca\": \"Apple\",\n  \"modelo\": \"MacBook\",\n  \"descripcion\": \"No enciende\",\n  \"especialidadId\": 1,\n  \"prioridad\": \"NORMAL\",\n  \"fechaHoraProgramada\": \"2026-12-01T10:00:00\",\n  \"esFeriado\": false\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{gateway_url}}/api/solicitudes",
+          "host": ["{{gateway_url}}"],
+          "path": ["api", "solicitudes"]
+        }
+      }
+    },
+    {
+      "name": "Paso 5: Login Técnico",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": ["pm.environment.set(\"token_tecnico\", pm.response.json().access_token);"]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"88887777\",\n  \"password\": \"88887777\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{gateway_url}}/api/login",
+          "host": ["{{gateway_url}}"],
+          "path": ["api", "login"]
+        }
+      }
+    },
+    {
+      "name": "Paso 6: Aceptar Solicitud",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.environment.set(\"total_costo\", pm.response.json().total);\r\nconsole.log(\"Aceptada. Costo total:\", pm.response.json().total);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token_tecnico}}" }
+        ],
+        "url": {
+          "raw": "{{gateway_url}}/api/solicitudes/{{solicitud_id}}/aceptar/{{tecnico_uuid}}",
+          "host": ["{{gateway_url}}"],
+          "path": ["api", "solicitudes", "{{solicitud_id}}", "aceptar", "{{tecnico_uuid}}"]
+        }
+      }
+    },
+    {
+      "name": "Paso 7: Aprobar Presupuesto",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token_cliente}}" }
+        ],
+        "url": {
+          "raw": "{{gateway_url}}/api/solicitudes/{{solicitud_id}}/aprobar-presupuesto?importe={{total_costo}}",
+          "host": ["{{gateway_url}}"],
+          "path": ["api", "solicitudes", "{{solicitud_id}}", "aprobar-presupuesto"],
+          "query": [ { "key": "importe", "value": "{{total_costo}}" } ]
+        }
+      }
+    },
+    {
+      "name": "Paso 8: Finalizar Solicitud",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token_tecnico}}" }
+        ],
+        "url": {
+          "raw": "{{gateway_url}}/api/solicitudes/{{solicitud_id}}/finalizar",
+          "host": ["{{gateway_url}}"],
+          "path": ["api", "solicitudes", "{{solicitud_id}}", "finalizar"]
+        }
+      }
+    },
+    {
+      "name": "Paso 9: Consultar Historial",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token_cliente}}" }
+        ],
+        "url": {
+          "raw": "{{gateway_url}}/api/solicitudes/{{solicitud_id}}/historial",
+          "host": ["{{gateway_url}}"],
+          "path": ["api", "solicitudes", "{{solicitud_id}}", "historial"]
+        }
+      }
+    }
+  ]
 }
 </file>
 
@@ -2789,6 +3054,44 @@ public interface TecnicoRepository extends JpaRepository<Tecnico, String> {
 }
 </file>
 
+<file path="ms-tecnicos/src/main/java/com/patitosrl/ms_tecnicos/web/dtos/TecnicoRequest.java">
+package com.patitosrl.ms_tecnicos.web.dtos;
+
+import java.util.List;
+
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import lombok.Data;
+
+@Data
+public class TecnicoRequest {
+
+    @NotBlank(message = "El nombre es obligatorio")
+    private String nombre;
+
+    @NotBlank(message = "El apellido es obligatorio")
+    private String apellido;
+
+    @NotBlank(message = "El DNI es obligatorio")
+    private String dni;
+
+    @NotBlank(message = "El email es obligatorio")
+    @Email(message = "El formato del email no es válido")
+    private String email;
+
+    @NotNull(message = "La latitud es obligatoria")
+    private Double latitud;
+
+    @NotNull(message = "La longitud es obligatoria")
+    private Double longitud;
+
+    private Boolean disponible;
+    private List<Long> certificacionIds;
+    private List<Long> zonaCoberturaIds;
+}
+</file>
+
 <file path="ms-tecnicos/src/main/java/com/patitosrl/ms_tecnicos/web/dtos/TecnicoResponse.java">
 package com.patitosrl.ms_tecnicos.web.dtos;
 
@@ -2826,84 +3129,6 @@ public class TecnicoResponse {
 }
 </file>
 
-<file path="ms-tecnicos/src/test/java/com/patitosrl/ms_tecnicos/business/services/TecnicoServiceTest.java">
-package com.patitosrl.ms_tecnicos.business.services;
-
-import java.util.List;
-
-import com.patitosrl.ms_tecnicos.business.models.Certificacion;
-import com.patitosrl.ms_tecnicos.business.models.Tecnico;
-import com.patitosrl.ms_tecnicos.infrastructure.repositories.CertificacionRepository;
-import com.patitosrl.ms_tecnicos.infrastructure.repositories.TecnicoRepository;
-import com.patitosrl.ms_tecnicos.infrastructure.repositories.ZonaCoberturaRepository;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.when;
-
-@ExtendWith(MockitoExtension.class)
-class TecnicoServiceTest {
-
-    @Mock private TecnicoRepository tecnicos;
-    @Mock private CertificacionRepository certificaciones;
-    @Mock private ZonaCoberturaRepository zonas;
-
-    private TecnicoService service;
-
-    private Tecnico juanCerca;
-    private Tecnico anaLejos;
-
-    @BeforeEach
-    void setUp() {
-        // Instanciamos el servicio con los 3 mocks
-        // (el radio de candidatos lo inyecta @Value, pero como es un test unitario, no se inyecta)
-        service = new TecnicoService(tecnicos, certificaciones, zonas);
-
-        Certificacion redes = new Certificacion(1L, "Redes");
-
-        // Técnico a 1 km aprox del centro (-31.420, -64.188) con ID String
-        juanCerca = Tecnico.builder()
-                .id("11111111-1111-1111-1111-111111111111")
-                .nombre("Juan").disponible(true)
-                .latitud(-31.415).longitud(-64.190)
-                .certificaciones(List.of(redes))
-                .build();
-
-        // Técnico a 30 km aprox (fuera del radio) con ID String
-        anaLejos = Tecnico.builder()
-                .id("22222222-2222-2222-2222-222222222222")
-                .nombre("Ana").disponible(true)
-                .latitud(-31.424).longitud(-64.500)
-                .certificaciones(List.of(redes))
-                .build();
-    }
-
-    @Test
-    void debeFiltrarTecnicosPorCertificacionYCercania() {
-        when(tecnicos.findByDisponibleTrue()).thenReturn(List.of(juanCerca, anaLejos));
-
-        List<Tecnico> resultado = service.buscarCandidatos(-31.420, -64.188, "Redes");
-
-        assertEquals(1, resultado.size());
-        assertEquals("Juan", resultado.get(0).getNombre());
-        assertFalse(resultado.stream().anyMatch(t -> t.getNombre().equals("Ana")));
-    }
-
-    @Test
-    void debeRetornarListaVaciaSiNoHayTecnicosConLaCertificacion() {
-        when(tecnicos.findByDisponibleTrue()).thenReturn(List.of(juanCerca));
-
-        List<Tecnico> resultado = service.buscarCandidatos(-31.420, -64.188, "Impresoras");
-
-        assertTrue(resultado.isEmpty());
-    }
-}
-</file>
-
 <file path=".gitignore">
 # Maven
 target/
@@ -2932,529 +3157,6 @@ application-local.yml
 # TEMPORAL: carpeta vieja hasta que todos migren
 
 repomix-output.xml
-</file>
-
-<file path="backend.postman_collection.json">
-{
-  "info": {
-    "_postman_id": "d647933b-776c-4ed9-9c43-85bc96c075d5",
-    "name": "backend",
-    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "_exporter_id": "54931068"
-  },
-  "item": [
-    {
-      "name": "Obtenertoken",
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "// Guarda el token automáticamente en la variable de entorno\npm.environment.set(\"token\", pm.response.json().access_token);\n\nconsole.log(\"Mi token:\", pm.response.json().access_token);"
-            ]
-          }
-        }
-      ],
-      "request": {
-        "method": "POST",
-        "header": [],
-        "body": {
-          "mode": "urlencoded",
-          "urlencoded": [
-            {
-              "key": "client_id",
-              "value": "patito-api"
-            },
-            {
-              "key": "client_secret",
-              "value": "GqcfBK6kuQGuGr9WLQTdUXEv97cxNSmz"
-            },
-            {
-              "key": "grant_type",
-              "value": "password"
-            },
-            {
-              "key": "username",
-              "value": "superadmin"
-            },
-            {
-              "key": "password",
-              "value": "admin123"
-            }
-          ]
-        },
-        "url": {
-          "raw": "http://localhost:41090/realms/patito/protocol/openid-connect/token",
-          "protocol": "http",
-          "host": [
-            "localhost"
-          ],
-          "port": "41090",
-          "path": [
-            "realms",
-            "patito",
-            "protocol",
-            "openid-connect",
-            "token"
-          ]
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "Obtenertoken Cliente",
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "// Guarda el token automáticamente en la variable de entorno\npm.environment.set(\"token\", pm.response.json().access_token);\n\nconsole.log(\"Mi token:\", pm.response.json().access_token);"
-            ]
-          }
-        }
-      ],
-      "request": {
-        "method": "POST",
-        "header": [],
-        "body": {
-          "mode": "urlencoded",
-          "urlencoded": [
-            {
-              "key": "client_id",
-              "value": "patito-api"
-            },
-            {
-              "key": "client_secret",
-              "value": "GqcfBK6kuQGuGr9WLQTdUXEv97cxNSmz"
-            },
-            {
-              "key": "grant_type",
-              "value": "password"
-            },
-            {
-              "key": "username",
-              "value": "5235325325"
-            },
-            {
-              "key": "password",
-              "value": "11223344"
-            }
-          ]
-        },
-        "url": {
-          "raw": "http://localhost:41090/realms/patito/protocol/openid-connect/token",
-          "protocol": "http",
-          "host": [
-            "localhost"
-          ],
-          "port": "41090",
-          "path": [
-            "realms",
-            "patito",
-            "protocol",
-            "openid-connect",
-            "token"
-          ]
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "Lista de Técnicos",
-      "request": {
-        "method": "GET",
-        "header": [
-          {
-            "key": "Authorization",
-            "value": "Bearer {{token}}"
-          }
-        ],
-        "url": {
-          "raw": "{{gateway_url}}/api/tecnicos",
-          "host": [
-            "{{gateway_url}}"
-          ],
-          "path": [
-            "api",
-            "tecnicos"
-          ]
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "Lista de clientes",
-      "request": {
-        "method": "GET",
-        "header": [
-          {
-            "key": "Authorization",
-            "value": "Bearer {{token}}"
-          }
-        ],
-        "url": {
-          "raw": "{{gateway_url}}/api/clientes?Authorization=Bearer {{token}}",
-          "host": [
-            "{{gateway_url}}"
-          ],
-          "path": [
-            "api",
-            "clientes"
-          ],
-          "query": [
-            {
-              "key": "Authorization",
-              "value": "Bearer {{token}}"
-            }
-          ]
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "Crear Cliente",
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Authorization",
-            "value": "Bearer {{token}}"
-          },
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"nombre\": \"m\",\n  \"apellido\": \"m\",\n  \"email\": \"mmmm@test.com\",\n  \"dni\": \"999999\",\n  \"latitud\": -31.42,\n  \"longitud\": -64.188\n}",
-          "options": {
-            "raw": {
-              "language": "json"
-            }
-          }
-        },
-        "url": {
-          "raw": "{{gateway_url}}/api/clientes",
-          "host": [
-            "{{gateway_url}}"
-          ],
-          "path": [
-            "api",
-            "clientes"
-          ]
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "Crear Cliente Copy",
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Authorization",
-            "value": "Bearer {{token}}"
-          },
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"nombre\": \"Carlos\",\n  \"apellido\": \"Garcia\",\n  \"dni\": \"5235325325\",\n  \"latitud\": -31.420,\n  \"longitud\": -64.188\n}",
-          "options": {
-            "raw": {
-              "language": "json"
-            }
-          }
-        },
-        "url": {
-          "raw": "{{gateway_url}}/api/clientes?Authorization=Bearer {{token}}",
-          "host": [
-            "{{gateway_url}}"
-          ],
-          "path": [
-            "api",
-            "clientes"
-          ],
-          "query": [
-            {
-              "key": "Authorization",
-              "value": "Bearer {{token}}"
-            }
-          ]
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "acceso rechazado",
-      "request": {
-        "method": "GET",
-        "header": [],
-        "url": {
-          "raw": "{{gateway_url}}/api/tecnicos",
-          "host": [
-            "{{gateway_url}}"
-          ],
-          "path": [
-            "api",
-            "tecnicos"
-          ]
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "Crear solicitud",
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Authorization",
-            "value": "Bearer {{token}}"
-          },
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"clienteId\": 11111111-1111-1111-1111-111111111111,\n  \"domicilio\": \"Av. Colón 1234\",\n  \"tiposServicio\": [\"REPARACION\"],\n  \"marca\": \"Apple\",\n  \"modelo\": \"MacBook Pro\",\n  \"descripcion\": \"Pantalla no enciende\",\n  \"especialidadId\": 3,\n  \"prioridad\": \"NORMAL\",\n  \"fechaHoraProgramada\": \"2026-11-10T10:00:00\",\n  \"esFeriado\": false\n}",
-          "options": {
-            "raw": {
-              "language": "json"
-            }
-          }
-        },
-        "url": {
-          "raw": "{{gateway_url}}/api/solicitudes",
-          "host": [
-            "{{gateway_url}}"
-          ],
-          "path": [
-            "api",
-            "solicitudes"
-          ]
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "Consultar historial por id",
-      "request": {
-        "method": "GET",
-        "header": [
-          {
-            "key": "Authorization",
-            "value": "Bearer {{token}}"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "",
-          "options": {
-            "raw": {
-              "language": "json"
-            }
-          }
-        },
-        "url": {
-          "raw": "{{gateway_url}}/api/solicitudes/1/historial",
-          "host": [
-            "{{gateway_url}}"
-          ],
-          "path": [
-            "api",
-            "solicitudes",
-            "1",
-            "historial"
-          ]
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "Consultar técnico más cercado con certificación",
-      "request": {
-        "method": "GET",
-        "header": [
-          {
-            "key": "Authorization",
-            "value": "Bearer {{token}}"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "",
-          "options": {
-            "raw": {
-              "language": "json"
-            }
-          }
-        },
-        "url": {
-          "raw": "http://localhost:41071/api/tecnicos/candidatos?lat=-31.420&lon=-64.188&certificacion=Notebooks Apple",
-          "protocol": "http",
-          "host": [
-            "localhost"
-          ],
-          "port": "41071",
-          "path": [
-            "api",
-            "tecnicos",
-            "candidatos"
-          ],
-          "query": [
-            {
-              "key": "lat",
-              "value": "-31.420"
-            },
-            {
-              "key": "lon",
-              "value": "-64.188"
-            },
-            {
-              "key": "certificacion",
-              "value": "Notebooks Apple"
-            }
-          ]
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "ofertar a técnico",
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Authorization",
-            "value": "Bearer {{token}}"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "",
-          "options": {
-            "raw": {
-              "language": "json"
-            }
-          }
-        },
-        "url": {
-          "raw": "http://localhost:41071/api/solicitudes/1/ofertar/2",
-          "protocol": "http",
-          "host": [
-            "localhost"
-          ],
-          "port": "41071",
-          "path": [
-            "api",
-            "solicitudes",
-            "1",
-            "ofertar",
-            "2"
-          ]
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "New Request",
-      "request": {
-        "method": "POST",
-        "header": [],
-        "body": {
-          "mode": "urlencoded",
-          "urlencoded": [
-            {
-              "key": "grant_type",
-              "value": "password"
-            },
-            {
-              "key": "client_id",
-              "value": "{{client_id}}"
-            },
-            {
-              "key": "client_secret",
-              "value": "{{client_secret}}"
-            },
-            {
-              "key": "username",
-              "value": "carlos.garcia"
-            },
-            {
-              "key": "password",
-              "value": "carlos123"
-            }
-          ]
-        },
-        "url": {
-          "raw": "{{token_url}}",
-          "host": [
-            "{{token_url}}"
-          ]
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "Crear Cliente Gateway",
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "// Pedir los datos usando ventanas emergentes\npm.variables.set(\"nombre\", prompt(\"Ingresá el Nombre:\"));\npm.variables.set(\"apellido\", prompt(\"Ingresá el Apellido:\"));\npm.variables.set(\"email\", prompt(\"Ingresá el Email:\"));\npm.variables.set(\"dni\", prompt(\"Ingresá el DNI:\"));\npm.variables.set(\"latitud\", prompt(\"Ingresá la Latitud (ej: -31.42):\"));\npm.variables.set(\"longitud\", prompt(\"Ingresá la Longitud (ej: -64.188):\"));"
-            ]
-          }
-        }
-      ],
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Authorization",
-            "value": "Bearer {{token}}"
-          },
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"nombre\": \"{{nombre}}\",\n  \"apellido\": \"{{apellido}}\",\n  \"email\": \"{{email}}\",\n  \"dni\": \"{{dni}}\",\n  \"latitud\": {{latitud}},\n  \"longitud\": {{longitud}}\n}",
-          "options": {
-            "raw": {
-              "language": "json"
-            }
-          }
-        },
-        "url": {
-          "raw": "{{keycloak_url}}/admin/realms/{{realm}}/users",
-          "host": [
-            "{{keycloak_url}}"
-          ],
-          "path": [
-            "admin",
-            "realms",
-            "{{realm}}",
-            "users"
-          ]
-        }
-      },
-      "response": []
-    }
-  ]
-}
 </file>
 
 <file path="clientes.http">
@@ -3543,127 +3245,6 @@ Content-Type: application/json
 {
   "username": "cliente1",
   "password": "1234"
-}
-</file>
-
-<file path="Patito Local.postman_environment.json">
-{
-	"id": "91105f0f-54d0-43e6-a288-1fc8790d9670",
-	"name": "Patito Local",
-	"values": [
-		{
-			"key": "gateway_url",
-			"value": "",
-			"type": "default",
-			"enabled": true
-		},
-		{
-			"key": "keycloak_url",
-			"value": "",
-			"type": "default",
-			"enabled": true
-		},
-		{
-			"key": "client_id",
-			"value": "",
-			"type": "default",
-			"enabled": true
-		},
-		{
-			"key": "client_secret",
-			"value": "",
-			"type": "default",
-			"enabled": true
-		},
-		{
-			"key": "realm",
-			"value": "",
-			"type": "default",
-			"enabled": true
-		},
-		{
-			"key": "token_url",
-			"value": "",
-			"type": "default",
-			"enabled": true
-		},
-		{
-			"key": "token",
-			"value": "",
-			"type": "default",
-			"enabled": true
-		},
-		{
-			"key": "kc_admin_user",
-			"value": "",
-			"type": "default",
-			"enabled": true
-		},
-		{
-			"key": "kc_admin_pass",
-			"value": "",
-			"type": "default",
-			"enabled": true
-		},
-		{
-			"key": "token_kc_admin",
-			"value": "",
-			"type": "default",
-			"enabled": true
-		},
-		{
-			"key": "keycloak_id",
-			"value": "",
-			"type": "default",
-			"enabled": true
-		},
-		{
-			"key": "tecnico_id",
-			"value": "",
-			"type": "default",
-			"enabled": true
-		},
-		{
-			"key": "nombre",
-			"value": "",
-			"type": "default",
-			"enabled": true
-		},
-		{
-			"key": "apellido",
-			"value": "",
-			"type": "default",
-			"enabled": true
-		},
-		{
-			"key": "email",
-			"value": "",
-			"type": "default",
-			"enabled": true
-		},
-		{
-			"key": "dni",
-			"value": "",
-			"type": "default",
-			"enabled": true
-		},
-		{
-			"key": "latitud",
-			"value": "",
-			"type": "default",
-			"enabled": true
-		},
-		{
-			"key": "longitud",
-			"value": "",
-			"type": "default",
-			"enabled": true
-		}
-	],
-	"color": null,
-	"_postman_variable_scope": "environment",
-	"_postman_exported_at": "2026-11-14T19:15:07.277Z",
-	"_postman_exported_using": "Postman/12.36.4"
 }
 </file>
 
@@ -4773,91 +4354,82 @@ ENTRYPOINT [ "java", "-jar", "app.jar" ]
 </project>
 </file>
 
-<file path="ms-tecnicos/src/main/java/com/patitosrl/ms_tecnicos/web/controllers/TecnicoController.java">
-package com.patitosrl.ms_tecnicos.web.controllers;
+<file path="ms-tecnicos/src/test/java/com/patitosrl/ms_tecnicos/business/services/TecnicoServiceTest.java">
+package com.patitosrl.ms_tecnicos.business.services;
 
 import java.util.List;
 
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.web.bind.annotation.*;
-
+import com.patitosrl.ms_tecnicos.business.models.Certificacion;
 import com.patitosrl.ms_tecnicos.business.models.Tecnico;
-import com.patitosrl.ms_tecnicos.business.services.TecnicoService;
-import com.patitosrl.ms_tecnicos.web.dtos.TecnicoRequest;
-import com.patitosrl.ms_tecnicos.web.dtos.TecnicoResponse;
-import com.patitosrl.ms_tecnicos.web.dtos.TecnicoSyncRequest;
+import com.patitosrl.ms_tecnicos.infrastructure.repositories.CertificacionRepository;
+import com.patitosrl.ms_tecnicos.infrastructure.repositories.TecnicoRepository;
+import com.patitosrl.ms_tecnicos.infrastructure.repositories.ZonaCoberturaRepository;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.web.reactive.function.client.WebClient;
 
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.when;
 
-@RestController
-@RequestMapping("/api/tecnicos")
-@RequiredArgsConstructor
-@Tag(name = "Gestión de Técnicos", description = "Endpoints para administrar los técnicos")
-public class TecnicoController {
+@ExtendWith(MockitoExtension.class)
+class TecnicoServiceTest {
 
-    private final TecnicoService service;
+    @Mock private TecnicoRepository tecnicos;
+    @Mock private CertificacionRepository certificaciones;
+    @Mock private ZonaCoberturaRepository zonas;
+    @Mock private WebClient keycloakWebClient;
 
-    @GetMapping
-    @Operation(summary = "Listar todos los técnicos")
-    public ResponseEntity<List<TecnicoResponse>> listar() {
-        return ResponseEntity.ok(service.listar().stream().map(TecnicoResponse::desde).toList());
+    private TecnicoService service;
+
+    private Tecnico juanCerca;
+    private Tecnico anaLejos;
+
+    @BeforeEach
+    void setUp() {
+        // Instanciamos el servicio con los 4 mocks
+        service = new TecnicoService(tecnicos, certificaciones, zonas, keycloakWebClient); // <-- AGREGAR keycloakWebClient
+
+        Certificacion redes = new Certificacion(1L, "Redes");
+
+        // Técnico a 1 km aprox del centro (-31.420, -64.188) con ID String
+        juanCerca = Tecnico.builder()
+                .id("11111111-1111-1111-1111-111111111111")
+                .nombre("Juan").disponible(true)
+                .latitud(-31.415).longitud(-64.190)
+                .certificaciones(List.of(redes))
+                .build();
+
+        // Técnico a 30 km aprox (fuera del radio) con ID String
+        anaLejos = Tecnico.builder()
+                .id("22222222-2222-2222-2222-222222222222")
+                .nombre("Ana").disponible(true)
+                .latitud(-31.424).longitud(-64.500)
+                .certificaciones(List.of(redes))
+                .build();
     }
 
-    @GetMapping("/candidatos")
-    @Operation(summary = "Buscar técnicos candidatos")
-    public ResponseEntity<List<TecnicoResponse>> buscarCandidatos(
-            @RequestParam Double lat, @RequestParam Double lon, @RequestParam String certificacion) {
-        return ResponseEntity.ok(service.buscarCandidatos(lat, lon, certificacion).stream()
-                .map(TecnicoResponse::desde).toList());
+    @Test
+    void debeFiltrarTecnicosPorCertificacionYCercania() {
+        when(tecnicos.findByDisponibleTrue()).thenReturn(List.of(juanCerca, anaLejos));
+
+        List<Tecnico> resultado = service.buscarCandidatos(-31.420, -64.188, "Redes");
+
+        assertEquals(1, resultado.size());
+        assertEquals("Juan", resultado.get(0).getNombre());
+        assertFalse(resultado.stream().anyMatch(t -> t.getNombre().equals("Ana")));
     }
 
-    @GetMapping("/{id}")
-    @Operation(summary = "Obtener un técnico por ID (keycloakId)")
-    public ResponseEntity<TecnicoResponse> obtener(@PathVariable String id) {
-        return ResponseEntity.ok(TecnicoResponse.desde(service.obtener(id)));
-    }
+    @Test
+    void debeRetornarListaVaciaSiNoHayTecnicosConLaCertificacion() {
+        when(tecnicos.findByDisponibleTrue()).thenReturn(List.of(juanCerca));
 
-    @PostMapping
-    @Operation(summary = "Registrar un nuevo técnico (desde Keycloak)")
-    public ResponseEntity<TecnicoResponse> crear(@Valid @RequestBody TecnicoRequest req, @AuthenticationPrincipal Jwt jwt) {
-        String keycloakId = jwt.getSubject();
-        Tecnico t = service.crear(req, keycloakId);
-        return ResponseEntity.ok(TecnicoResponse.desde(t));
-    }
+        List<Tecnico> resultado = service.buscarCandidatos(-31.420, -64.188, "Impresoras");
 
-    @PostMapping("/sincronizar")
-    @Operation(summary = "Sincronizar técnico desde Keycloak")
-    public ResponseEntity<TecnicoResponse> sincronizar(@RequestBody TecnicoSyncRequest req) {
-        Tecnico t = service.sincronizar(req.getKeycloakId(), req.getNombre(), req.getEmail());
-        return ResponseEntity.ok(TecnicoResponse.desde(t));
+        assertTrue(resultado.isEmpty());
     }
-
-    @PutMapping("/{id}")
-    @Operation(summary = "Actualizar un técnico existente")
-    public ResponseEntity<TecnicoResponse> actualizar(@PathVariable String id,
-                                                      @Valid @RequestBody TecnicoRequest req) {
-        return ResponseEntity.ok(TecnicoResponse.desde(service.actualizar(id, req)));
-    }
-
-    @PatchMapping("/{id}/disponibilidad")
-    @Operation(summary = "Cambiar disponibilidad del técnico (para aceptar/liberar ofertas)")
-    public ResponseEntity<TecnicoResponse> cambiarDisponibilidad(@PathVariable String id,
-                                                                 @RequestParam boolean disponible) {
-        return ResponseEntity.ok(TecnicoResponse.desde(service.cambiarDisponibilidad(id, disponible)));
-    }
-
-    @DeleteMapping("/{id}")
-    @Operation(summary = "Eliminar un técnico")
-    public ResponseEntity<Void> eliminar(@PathVariable String id) {
-        service.eliminar(id);
-        return ResponseEntity.noContent().build();
-    }
-
 }
 </file>
 
@@ -4902,88 +4474,6 @@ USER appuser
 EXPOSE 41073
 
 ENTRYPOINT [ "java", "-jar", "app.jar" ]
-</file>
-
-<file path="ms-tecnicos/pom.xml">
-<?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
-    <modelVersion>4.0.0</modelVersion>
-
-    <parent>
-        <groupId>com.patitosrl</groupId>
-        <artifactId>proyecto-patito</artifactId>
-        <version>1.0.0-SNAPSHOT</version>
-    </parent>
-
-    <artifactId>ms-tecnicos</artifactId>
-    <name>ms-tecnicos</name>
-    <description>Microservicio de gestión de técnicos, certificaciones y zonas de cobertura</description>
-
-    <dependencies>
-        <!-- Spring Web -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
-        </dependency>
-
-        <!-- Spring Data JPA -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-jpa</artifactId>
-        </dependency>
-
-        <!-- Base de Datos H2 -->
-        <dependency>
-            <groupId>com.h2database</groupId>
-            <artifactId>h2</artifactId>
-            <scope>runtime</scope>
-        </dependency>
-
-        <!-- Validaciones -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-validation</artifactId>
-        </dependency>
-
-        <!-- Swagger / OpenAPI -->
-        <dependency>
-            <groupId>org.springdoc</groupId>
-            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
-            <version>2.5.0</version>
-        </dependency>
-
-        
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-security</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
-        </dependency>
-
-         <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-test</artifactId>
-            <scope>test</scope>
-        </dependency>
-        
-    </dependencies>
-
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-            </plugin>
-            <plugin>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-maven-plugin</artifactId>
-            </plugin>
-        </plugins>
-    </build>
-</project>
 </file>
 
 <file path="README.md">
@@ -5043,157 +4533,177 @@ mvn clean test
 mvn clean test -pl ms-tecnicos -am (para ejecutar un modulo especifico)
 </file>
 
-<file path="ms-tecnicos/src/main/java/com/patitosrl/ms_tecnicos/business/services/TecnicoService.java">
-package com.patitosrl.ms_tecnicos.business.services;
+<file path="ms-tecnicos/src/main/java/com/patitosrl/ms_tecnicos/web/controllers/TecnicoController.java">
+package com.patitosrl.ms_tecnicos.web.controllers;
 
-import java.util.Comparator;
 import java.util.List;
 
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.web.bind.annotation.*;
 
-import com.patitosrl.ms_tecnicos.business.exceptions.ReglaDeNegocioException;
-import com.patitosrl.ms_tecnicos.business.exceptions.TecnicoNoEncontradoException;
-import com.patitosrl.ms_tecnicos.business.models.Certificacion;
 import com.patitosrl.ms_tecnicos.business.models.Tecnico;
-import com.patitosrl.ms_tecnicos.business.models.ZonaCobertura;
-import com.patitosrl.ms_tecnicos.infrastructure.repositories.CertificacionRepository;
-import com.patitosrl.ms_tecnicos.infrastructure.repositories.TecnicoRepository;
-import com.patitosrl.ms_tecnicos.infrastructure.repositories.ZonaCoberturaRepository;
+import com.patitosrl.ms_tecnicos.business.services.TecnicoService;
 import com.patitosrl.ms_tecnicos.web.dtos.TecnicoRequest;
+import com.patitosrl.ms_tecnicos.web.dtos.TecnicoResponse;
+import com.patitosrl.ms_tecnicos.web.dtos.TecnicoSyncRequest;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
-@Service
+@RestController
+@RequestMapping("/api/tecnicos")
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
-public class TecnicoService {
+@Tag(name = "Gestión de Técnicos", description = "Endpoints para administrar los técnicos")
+public class TecnicoController {
 
-    private final TecnicoRepository tecnicos;
-    private final CertificacionRepository certificaciones;
-    private final ZonaCoberturaRepository zonas;
+    private final TecnicoService service;
 
-    @Value("${app.candidatos.radio-km:13.0}")
-    private double radioCandidatosKm = 13.0;
-
-    public List<Tecnico> listar() {
-        return tecnicos.findAll();
+    @GetMapping
+    @Operation(summary = "Listar todos los técnicos")
+    public ResponseEntity<List<TecnicoResponse>> listar() {
+        return ResponseEntity.ok(service.listar().stream().map(TecnicoResponse::desde).toList());
     }
 
-    public Tecnico obtener(String id) {
-        return tecnicos.findById(id)
-                .orElseThrow(() -> new TecnicoNoEncontradoException(id));
+    @GetMapping("/candidatos")
+    @Operation(summary = "Buscar técnicos candidatos")
+    public ResponseEntity<List<TecnicoResponse>> buscarCandidatos(
+            @RequestParam Double lat, @RequestParam Double lon, @RequestParam String certificacion) {
+        return ResponseEntity.ok(service.buscarCandidatos(lat, lon, certificacion).stream()
+                .map(TecnicoResponse::desde).toList());
     }
 
-    @Transactional
-    public Tecnico crear(TecnicoRequest req, String keycloakId) {
-        if (tecnicos.existsByDni(req.getDni())) {
-            throw new ReglaDeNegocioException("Ya existe un técnico con DNI " + req.getDni());
-        }
-
-        Tecnico t = Tecnico.builder()
-                .id(keycloakId) // ID = keycloakId
-                .nombre(req.getNombre())
-                .apellido(req.getApellido())
-                .dni(req.getDni())
-                .latitud(req.getLatitud())
-                .longitud(req.getLongitud())
-                .disponible(req.getDisponible() == null || req.getDisponible())
-                .certificaciones(buscarCertificaciones(req.getCertificacionIds()))
-                .zonasCobertura(buscarZonas(req.getZonaCoberturaIds()))
-                .build();
-        return tecnicos.save(t);
+    @GetMapping("/{id}")
+    @Operation(summary = "Obtener un técnico por ID (keycloakId)")
+    public ResponseEntity<TecnicoResponse> obtener(@PathVariable String id) {
+        return ResponseEntity.ok(TecnicoResponse.desde(service.obtener(id)));
     }
 
-    @Transactional
-    public Tecnico sincronizar(String keycloakId, String nombre, String email) {
-        return tecnicos.findById(keycloakId)
-                .orElseGet(() -> tecnicos.save(Tecnico.builder()
-                        .id(keycloakId)
-                        .nombre(nombre)
-                        .apellido("")
-                        .dni("")
-                        .latitud(0.0)
-                        .longitud(0.0)
-                        .disponible(true)
-                        .certificaciones(List.of())
-                        .zonasCobertura(List.of())
-                        .build()));
+    @PostMapping
+    @Operation(summary = "Registrar un nuevo técnico (crea en Keycloak + H2)")
+    public ResponseEntity<TecnicoResponse> crear(@Valid @RequestBody TecnicoRequest req) {
+        Tecnico t = service.crear(req);
+        return ResponseEntity.ok(TecnicoResponse.desde(t));
     }
 
-    public List<Tecnico> buscarCandidatos(Double lat, Double lon, String certificacionRequerida) {
-        return tecnicos.findByDisponibleTrue().stream()
-                .filter(t -> t.getCertificaciones() != null && t.getCertificaciones().stream()
-                        .anyMatch(c -> c.getNombre().equalsIgnoreCase(certificacionRequerida)))
-                .filter(t -> haversine(lat, lon, t.getLatitud(), t.getLongitud()) <= radioCandidatosKm)
-                .sorted(Comparator.comparingDouble(t -> haversine(lat, lon, t.getLatitud(), t.getLongitud())))
-                .toList();
+    @PostMapping("/sincronizar")
+    @Operation(summary = "Sincronizar técnico desde Keycloak")
+    public ResponseEntity<TecnicoResponse> sincronizar(@RequestBody TecnicoSyncRequest req) {
+        Tecnico t = service.sincronizar(req.getKeycloakId(), req.getNombre(), req.getEmail());
+        return ResponseEntity.ok(TecnicoResponse.desde(t));
     }
 
-    private List<Certificacion> buscarCertificaciones(List<Long> ids) {
-        if (ids == null || ids.isEmpty()) return List.of();
-        List<Certificacion> encontradas = certificaciones.findAllById(ids);
-        if (encontradas.size() != ids.stream().distinct().count()) {
-            throw new ReglaDeNegocioException("Alguna de las certificaciones indicadas no existe");
-        }
-        return encontradas;
+    @PutMapping("/{id}")
+    @Operation(summary = "Actualizar un técnico existente")
+    public ResponseEntity<TecnicoResponse> actualizar(@PathVariable String id,
+                                                      @Valid @RequestBody TecnicoRequest req) {
+        return ResponseEntity.ok(TecnicoResponse.desde(service.actualizar(id, req)));
     }
 
-    private List<ZonaCobertura> buscarZonas(List<Long> ids) {
-        if (ids == null || ids.isEmpty()) return List.of();
-        List<ZonaCobertura> encontradas = zonas.findAllById(ids);
-        if (encontradas.size() != ids.stream().distinct().count()) {
-            throw new ReglaDeNegocioException("Alguna de las zonas de cobertura indicadas no existe");
-        }
-        return encontradas;
+    @PatchMapping("/{id}/disponibilidad")
+    @Operation(summary = "Cambiar disponibilidad del técnico (para aceptar/liberar ofertas)")
+    public ResponseEntity<TecnicoResponse> cambiarDisponibilidad(@PathVariable String id,
+                                                                 @RequestParam boolean disponible) {
+        return ResponseEntity.ok(TecnicoResponse.desde(service.cambiarDisponibilidad(id, disponible)));
     }
 
-    private double haversine(double lat1, double lon1, double lat2, double lon2) {
-        final int R = 6371;
-        double dLat = Math.toRadians(lat2 - lat1);
-        double dLon = Math.toRadians(lon2 - lon1);
-        double a = Math.sin(dLat / 2) * Math.sin(dLat / 2)
-                 + Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2))
-                 * Math.sin(dLon / 2) * Math.sin(dLon / 2);
-        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    @DeleteMapping("/{id}")
+    @Operation(summary = "Eliminar un técnico")
+    public ResponseEntity<Void> eliminar(@PathVariable String id) {
+        service.eliminar(id);
+        return ResponseEntity.noContent().build();
     }
 
-    @Transactional
-    public Tecnico actualizar(String id, TecnicoRequest req) {
-        Tecnico t = obtener(id);
-
-        if (!t.getDni().equals(req.getDni()) && tecnicos.existsByDni(req.getDni())) {
-            throw new ReglaDeNegocioException("Ya existe un técnico con DNI " + req.getDni());
-        }
-
-        t.setNombre(req.getNombre());
-        t.setApellido(req.getApellido());
-        t.setDni(req.getDni());
-        t.setLatitud(req.getLatitud());
-        t.setLongitud(req.getLongitud());
-        if (req.getDisponible() != null) {
-            t.setDisponible(req.getDisponible());
-        }
-        t.setCertificaciones(buscarCertificaciones(req.getCertificacionIds()));
-        t.setZonasCobertura(buscarZonas(req.getZonaCoberturaIds()));
-
-        return tecnicos.save(t);
-    }
-
-    @Transactional
-    public Tecnico cambiarDisponibilidad(String id, boolean disponible) {
-        Tecnico t = obtener(id);
-        t.setDisponible(disponible);
-        return tecnicos.save(t);
-    }
-
-    @Transactional
-    public void eliminar(String id) {
-        Tecnico t = obtener(id);
-        tecnicos.delete(t); // Hibernate limpia las tablas de join ManyToMany
-    }
 }
+</file>
+
+<file path="ms-tecnicos/pom.xml">
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.patitosrl</groupId>
+        <artifactId>proyecto-patito</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>ms-tecnicos</artifactId>
+    <name>ms-tecnicos</name>
+    <description>Microservicio de gestión de técnicos, certificaciones y zonas de cobertura</description>
+
+    <dependencies>
+        <!-- Spring Web -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <!-- Spring Data JPA -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-jpa</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-webflux</artifactId>
+        </dependency>
+
+        <!-- Base de Datos H2 -->
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!-- Validaciones -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
+        </dependency>
+
+        <!-- Swagger / OpenAPI -->
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+            <version>2.5.0</version>
+        </dependency>
+
+        
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
+        </dependency>
+
+         <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+</project>
 </file>
 
 <file path="ms-clientes/src/main/java/com/patitosrl/ms_clientes/web/controllers/ClienteController.java">
@@ -5557,6 +5067,240 @@ public class SolicitudService {
         solicitudes.delete(s);
     }
 
+}
+</file>
+
+<file path="ms-tecnicos/src/main/java/com/patitosrl/ms_tecnicos/business/services/TecnicoService.java">
+package com.patitosrl.ms_tecnicos.business.services;
+
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.reactive.function.client.WebClient;
+
+import com.patitosrl.ms_tecnicos.business.exceptions.ReglaDeNegocioException;
+import com.patitosrl.ms_tecnicos.business.exceptions.TecnicoNoEncontradoException;
+import com.patitosrl.ms_tecnicos.business.models.Certificacion;
+import com.patitosrl.ms_tecnicos.business.models.Tecnico;
+import com.patitosrl.ms_tecnicos.business.models.ZonaCobertura;
+import com.patitosrl.ms_tecnicos.infrastructure.repositories.CertificacionRepository;
+import com.patitosrl.ms_tecnicos.infrastructure.repositories.TecnicoRepository;
+import com.patitosrl.ms_tecnicos.infrastructure.repositories.ZonaCoberturaRepository;
+import com.patitosrl.ms_tecnicos.web.dtos.TecnicoRequest;
+
+import lombok.RequiredArgsConstructor;
+
+@Service
+@RequiredArgsConstructor
+@Transactional(readOnly = true)
+public class TecnicoService {
+
+    private final TecnicoRepository tecnicos;
+    private final CertificacionRepository certificaciones;
+    private final ZonaCoberturaRepository zonas;
+    private final WebClient keycloakWebClient;
+
+    @Value("${app.candidatos.radio-km:13.0}")
+    private double radioCandidatosKm = 13.0;
+
+    public List<Tecnico> listar() {
+        return tecnicos.findAll();
+    }
+
+    public Tecnico obtener(String id) {
+        return tecnicos.findById(id)
+                .orElseThrow(() -> new TecnicoNoEncontradoException(id));
+    }
+
+    @Transactional
+    public Tecnico crear(TecnicoRequest req) {
+        if (tecnicos.existsByDni(req.getDni())) {
+            throw new ReglaDeNegocioException("Ya existe un técnico con DNI " + req.getDni());
+        }
+
+        // 1. Crear en Keycloak (y obtener el UUID)
+        String keycloakId = crearUsuarioEnKeycloak(req);
+
+        // 2. Guardar en H2 con el UUID obtenido
+        Tecnico t = Tecnico.builder()
+                .id(keycloakId)
+                .nombre(req.getNombre())
+                .apellido(req.getApellido())
+                .dni(req.getDni())
+                .latitud(req.getLatitud())
+                .longitud(req.getLongitud())
+                .disponible(req.getDisponible() == null || req.getDisponible())
+                .certificaciones(buscarCertificaciones(req.getCertificacionIds()))
+                .zonasCobertura(buscarZonas(req.getZonaCoberturaIds()))
+                .build();
+        return tecnicos.save(t);
+    }
+
+    private String crearUsuarioEnKeycloak(TecnicoRequest req) {
+        try {
+            // A. Obtener Token de Admin (Client Credentials)
+            String tokenBody = "grant_type=client_credentials" +
+                               "&client_id=patito-api" +
+                               "&client_secret=patito-secret-1234";
+
+            Map tokenResponse = keycloakWebClient.post()
+                    .uri("/realms/patito/protocol/openid-connect/token")
+                    .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                    .bodyValue(tokenBody)
+                    .retrieve()
+                    .bodyToMono(Map.class)
+                    .block();
+
+            String token = (String) tokenResponse.get("access_token");
+
+            // B. Crear el usuario en Keycloak
+            Map<String, Object> kcUser = new HashMap<>();
+            kcUser.put("username", req.getDni());
+            kcUser.put("email", req.getEmail() != null ? req.getEmail() : req.getDni() + "@patito.com");
+            kcUser.put("firstName", req.getNombre());
+            kcUser.put("lastName", req.getApellido());
+            kcUser.put("enabled", true);
+            kcUser.put("emailVerified", true);
+
+            kcUser.put("credentials", List.of(Map.of("type", "password", "value", req.getDni(), "temporary", false)));
+
+            var response = keycloakWebClient.post()
+                    .uri("/admin/realms/patito/users")
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .bodyValue(kcUser)
+                    .retrieve()
+                    .toBodilessEntity()
+                    .block();
+
+            if (response != null && response.getHeaders().getLocation() != null) {
+                String path = response.getHeaders().getLocation().getPath();
+                String userId = path.substring(path.lastIndexOf('/') + 1);
+
+                // ========================================================
+                // C. ASIGNAR EL ROL "TECNICO" AL USUARIO RECIÉN CREADO
+                // ========================================================
+                Map roleInfo = keycloakWebClient.get()
+                        .uri("/admin/realms/patito/roles/TECNICO")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .retrieve()
+                        .bodyToMono(Map.class)
+                        .block();
+
+                if (roleInfo != null) {
+                    keycloakWebClient.post()
+                            .uri("/admin/realms/patito/users/" + userId + "/role-mappings/realm")
+                            .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .bodyValue(List.of(roleInfo))
+                            .retrieve()
+                            .toBodilessEntity()
+                            .block();
+                }
+
+                return userId;
+            }
+            throw new ReglaDeNegocioException("No se pudo obtener el ID de Keycloak");
+
+        } catch (Exception e) {
+            throw new ReglaDeNegocioException("Error al crear usuario en Keycloak: " + e.getMessage());
+        }
+    }
+
+    public List<Tecnico> buscarCandidatos(Double lat, Double lon, String certificacionRequerida) {
+        return tecnicos.findByDisponibleTrue().stream()
+                .filter(t -> t.getCertificaciones() != null && t.getCertificaciones().stream()
+                        .anyMatch(c -> c.getNombre().equalsIgnoreCase(certificacionRequerida)))
+                .filter(t -> haversine(lat, lon, t.getLatitud(), t.getLongitud()) <= radioCandidatosKm)
+                .sorted(Comparator.comparingDouble(t -> haversine(lat, lon, t.getLatitud(), t.getLongitud())))
+                .toList();
+    }
+
+    private List<Certificacion> buscarCertificaciones(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) return List.of();
+        List<Certificacion> encontradas = certificaciones.findAllById(ids);
+        if (encontradas.size() != ids.stream().distinct().count()) {
+            throw new ReglaDeNegocioException("Alguna de las certificaciones indicadas no existe");
+        }
+        return encontradas;
+    }
+
+    private List<ZonaCobertura> buscarZonas(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) return List.of();
+        List<ZonaCobertura> encontradas = zonas.findAllById(ids);
+        if (encontradas.size() != ids.stream().distinct().count()) {
+            throw new ReglaDeNegocioException("Alguna de las zonas de cobertura indicadas no existe");
+        }
+        return encontradas;
+    }
+
+    private double haversine(double lat1, double lon1, double lat2, double lon2) {
+        final int R = 6371;
+        double dLat = Math.toRadians(lat2 - lat1);
+        double dLon = Math.toRadians(lon2 - lon1);
+        double a = Math.sin(dLat / 2) * Math.sin(dLat / 2)
+                 + Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2))
+                 * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    }
+
+    @Transactional
+    public Tecnico sincronizar(String keycloakId, String nombre, String email) {
+        return tecnicos.findById(keycloakId)
+                .orElseGet(() -> tecnicos.save(Tecnico.builder()
+                        .id(keycloakId)
+                        .nombre(nombre)
+                        .apellido("")
+                        .dni("")
+                        .latitud(0.0)
+                        .longitud(0.0)
+                        .disponible(true)
+                        .certificaciones(List.of())
+                        .zonasCobertura(List.of())
+                        .build()));
+    }
+
+    @Transactional
+    public Tecnico actualizar(String id, TecnicoRequest req) {
+        Tecnico t = obtener(id);
+
+        if (!t.getDni().equals(req.getDni()) && tecnicos.existsByDni(req.getDni())) {
+            throw new ReglaDeNegocioException("Ya existe un técnico con DNI " + req.getDni());
+        }
+
+        t.setNombre(req.getNombre());
+        t.setApellido(req.getApellido());
+        t.setDni(req.getDni());
+        t.setLatitud(req.getLatitud());
+        t.setLongitud(req.getLongitud());
+        if (req.getDisponible() != null) {
+            t.setDisponible(req.getDisponible());
+        }
+        t.setCertificaciones(buscarCertificaciones(req.getCertificacionIds()));
+        t.setZonasCobertura(buscarZonas(req.getZonaCoberturaIds()));
+
+        return tecnicos.save(t);
+    }
+
+    @Transactional
+    public Tecnico cambiarDisponibilidad(String id, boolean disponible) {
+        Tecnico t = obtener(id);
+        t.setDisponible(disponible);
+        return tecnicos.save(t);
+    }
+
+    @Transactional
+    public void eliminar(String id) {
+        Tecnico t = obtener(id);
+        tecnicos.delete(t);
+    }
 }
 </file>
 

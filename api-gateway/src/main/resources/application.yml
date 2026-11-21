@@ -5,8 +5,8 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: http://keycloak:8080/realms/patito
-          jwk-set-uri: http://keycloak:8080/realms/patito/protocol/openid-connect/certs
+          issuer-uri: ${SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI:http://keycloak:8080/realms/patito}
+          jwk-set-uri: ${SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI:http://keycloak:8080/realms/patito/protocol/openid-connect/certs}
 
   cloud:
     gateway:
@@ -26,6 +26,16 @@ spring:
 
 server:
   port: 41071
+
+app:
+  keycloak:
+    issuer: ${APP_KEYCLOAK_ISSUER:http://keycloak:8080/realms/patito}
+    jwk-set-uri: ${APP_KEYCLOAK_JWK_SET_URI:http://keycloak:8080/realms/patito/protocol/openid-connect/certs}
+    audience: ${APP_KEYCLOAK_AUDIENCE:patito-api}
+  gateway:
+    solicitudes-url: ${APP_GATEWAY_SOLICITUDES_URL:http://ms-solicitudes:41072}
+    tecnicos-url: ${APP_GATEWAY_TECNICOS_URL:http://ms-tecnicos:41073}
+    clientes-url: ${APP_GATEWAY_CLIENTES_URL:http://ms-clientes:41074}
 
 springdoc:
   swagger-ui:

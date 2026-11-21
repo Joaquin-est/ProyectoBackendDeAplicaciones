@@ -1,9 +1,12 @@
 package com.patitosrl.ms_solicitudes.web.controllers;
 
 import java.net.URI;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
@@ -11,6 +14,8 @@ import org.springframework.web.bind.annotation.*;
 import com.patitosrl.ms_solicitudes.business.models.HistorialEstado;
 import com.patitosrl.ms_solicitudes.business.models.Solicitud;
 import com.patitosrl.ms_solicitudes.business.services.SolicitudService;
+import com.patitosrl.ms_solicitudes.web.dtos.DerivarRequest;
+import com.patitosrl.ms_solicitudes.web.dtos.ReprogramarRequest;
 import com.patitosrl.ms_solicitudes.web.dtos.SolicitudRequest;
 import com.patitosrl.ms_solicitudes.web.dtos.SolicitudResponse;
 
@@ -28,13 +33,13 @@ public class SolicitudController {
     private final SolicitudService service;
 
     @PostMapping
-    @Operation(summary = "Crear una nueva solicitud", 
+    @Operation(summary = "Crear una nueva solicitud",
                description = "Crea una solicitud en estado PENDIENTE y dispara automáticamente la oferta al técnico más cercano.")
     public ResponseEntity<SolicitudResponse> crear(@Valid @RequestBody SolicitudRequest req,
                                                    @AuthenticationPrincipal Jwt jwt) {
         String clienteKeycloakId = jwt.getSubject();
         Solicitud s = service.crear(req, clienteKeycloakId);
-        
+
         return ResponseEntity.created(URI.create("/api/solicitudes/" + s.getId()))
                 .body(SolicitudResponse.desde(s));
     }
@@ -43,6 +48,13 @@ public class SolicitudController {
     @Operation(summary = "Listar todas las solicitudes")
     public ResponseEntity<List<SolicitudResponse>> listar() {
         return ResponseEntity.ok(service.listar().stream().map(SolicitudResponse::desde).toList());
+    }
+
+    @GetMapping("/cliente/{id}")
+    @Operation(summary = "Listar solicitudes de un cliente")
+    public ResponseEntity<List<SolicitudResponse>> listarPorCliente(@PathVariable String id) {
+        return ResponseEntity.ok(service.listarPorCliente(id).stream()
+                .map(SolicitudResponse::desde).toList());
     }
 
     @GetMapping("/mis-solicitudes")
@@ -66,20 +78,16 @@ public class SolicitudController {
     public ResponseEntity<SolicitudResponse> obtener(@PathVariable Long id,
                                                      @AuthenticationPrincipal Jwt jwt) {
         Solicitud s = service.obtener(id);
-        boolean esAdmin = jwt.getClaimAsStringList("realm_access.roles") != null
-                && jwt.getClaimAsStringList("realm_access.roles").contains("ADMIN");
-        boolean esDueno = s.getClienteId().equals(jwt.getSubject());
-        boolean esTecnicoAsignado = s.getTecnicoId() != null && s.getTecnicoId().equals(jwt.getSubject());
-        
-        if (!esAdmin && !esDueno && !esTecnicoAsignado) {
-            throw new org.springframework.security.access.AccessDeniedException("No tenés permiso para ver esta solicitud");
-        }
+        validarAccesoSolicitud(s, jwt);
         return ResponseEntity.ok(SolicitudResponse.desde(s));
     }
 
     @GetMapping("/{id}/historial")
     @Operation(summary = "Consultar el historial de estados")
-    public ResponseEntity<List<HistorialEstado>> historial(@PathVariable Long id) {
+    public ResponseEntity<List<HistorialEstado>> historial(@PathVariable Long id,
+                                                           @AuthenticationPrincipal Jwt jwt) {
+        Solicitud s = service.obtener(id);
+        validarAccesoSolicitud(s, jwt);
         return ResponseEntity.ok(service.historial(id));
     }
 
@@ -100,5 +108,72 @@ public class SolicitudController {
     @Operation(summary = "Finalizar una solicitud")
     public ResponseEntity<SolicitudResponse> finalizar(@PathVariable Long id) {
         return ResponseEntity.ok(SolicitudResponse.desde(service.finalizar(id)));
+    }
+
+    @PutMapping("/{id}")
+    @Operation(summary = "Editar una solicitud en estado PENDIENTE u OFERTADA")
+    public ResponseEntity<SolicitudResponse> actualizar(@PathVariable Long id,
+                                                        @Valid @RequestBody SolicitudRequest req) {
+        return ResponseEntity.ok(SolicitudResponse.desde(service.actualizar(id, req)));
+    }
+
+    @PostMapping("/{id}/reprogramar")
+    @Operation(summary = "Reprogramar una solicitud")
+    public ResponseEntity<SolicitudResponse> reprogramar(@PathVariable Long id,
+                                                         @Valid @RequestBody ReprogramarRequest req) {
+        return ResponseEntity.ok(SolicitudResponse.desde(
+                service.reprogramar(id, req.getNuevaFecha(), req.getMotivo())));
+    }
+
+    @PostMapping("/{id}/derivar")
+    @Operation(summary = "Derivar una solicitud a otro técnico")
+    public ResponseEntity<SolicitudResponse> derivar(@PathVariable Long id,
+                                                     @Valid @RequestBody DerivarRequest req) {
+        return ResponseEntity.ok(SolicitudResponse.desde(
+                service.derivar(id, req.getTecnicoDestinoId(), req.getMotivo())));
+    }
+
+    @PostMapping("/{id}/iniciar")
+    @Operation(summary = "Iniciar el servicio sin pasar por aprobación de presupuesto")
+    public ResponseEntity<SolicitudResponse> iniciar(@PathVariable Long id) {
+        return ResponseEntity.ok(SolicitudResponse.desde(service.iniciar(id)));
+    }
+
+    @DeleteMapping("/{id}")
+    @Operation(summary = "Eliminar una solicitud PENDIENTE o CANCELADA")
+    public ResponseEntity<Void> eliminar(@PathVariable Long id) {
+        service.eliminar(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    private void validarAccesoSolicitud(Solicitud s, Jwt jwt) {
+        if (jwt == null) {
+            return;
+        }
+        boolean esAdmin = tieneRolAdmin(jwt);
+        boolean esDueno = s.getClienteId() != null && s.getClienteId().equals(jwt.getSubject());
+        boolean esTecnicoAsignado = s.getTecnicoId() != null && s.getTecnicoId().equals(jwt.getSubject());
+
+        if (!esAdmin && !esDueno && !esTecnicoAsignado) {
+            throw new AccessDeniedException("No tenés permiso para ver esta solicitud");
+        }
+    }
+
+    private boolean tieneRolAdmin(Jwt jwt) {
+        if (contieneRolAdmin(jwt.getClaim("roles"))) {
+            return true;
+        }
+        Map<String, Object> realmAccess = jwt.getClaim("realm_access");
+        return realmAccess != null && contieneRolAdmin(realmAccess.get("roles"));
+    }
+
+    private boolean contieneRolAdmin(Object origen) {
+        if (origen instanceof Collection<?> roles) {
+            return roles.stream()
+                    .filter(r -> r != null)
+                    .map(r -> r.toString().trim().toUpperCase())
+                    .anyMatch(r -> r.equals("ADMIN") || r.equals("ROLE_ADMIN") || r.equals("BIBLIOTECARIO"));
+        }
+        return false;
     }
 }
